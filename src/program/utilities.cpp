@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "configuration.h"
-
+#include "input.h"
 #include "utilities.h"
 
 
@@ -23,6 +23,110 @@ void serialHandler::send_message_line(const char* message)
 {
     Serial.println(message);
 }
+
+
+//chrony functions
+//uses hardware timer '1'
+
+//make non-classed function and variables for timer interrupt
+hw_timer_t *chron_timer = NULL; //timer object
+bool chron_state = false; //true if a dart is inside the trigger zone
+unsigned int chron_count = 0; //how many darts have passed through the chronograph
+//these only apply to the most recent dart
+unsigned long micros_start = 0; //when the dart entered
+unsigned long micros_end = 0; //when the dart left
+void IRAM_ATTR timerHandle()
+{
+
+    int result = safeAnalogRead(IR_REC_READBACK);
+
+    //when the dart first enters
+    if (chron_state == false && result < IR_ADC_FALL_VAL)
+    {
+        chron_state = true;
+        micros_start = micros();
+    }
+    else if(chron_state == true && result > IR_ADC_RISE_VAL)
+    {
+        chron_state = false;
+        micros_end = micros();
+        ++chron_count;
+    }
+}
+
+
+//set pinmodes and configure timer inturrupts
+chronyHandler::chronyHandler()
+{
+    //set pins to the correct mode
+    pinMode(IR_REC_POWER, OUTPUT);
+	pinMode(IR_REC_READBACK, INPUT);
+	pinMode(IR_EMITTER, OUTPUT);
+
+
+    //create fast timer and immediately stop it (initialize only)
+    chron_timer = timerBegin(1, 80, true);
+    timerStop(chron_timer);
+
+    //create inturrupt
+    timerAttachInterrupt(chron_timer, &timerHandle, true);
+    timerAlarmWrite(chron_timer, 100, true); // every 100 microseconds (may need to change...)
+    //timerAlarmEnable(chron_timer);
+
+
+}
+//start the interrupt timer and turn on the LEDs
+void chronyHandler::begin_isr()
+{
+
+    //enable LEDs
+    digitalWrite(IR_REC_POWER, true);
+	digitalWrite(IR_EMITTER, true);
+
+    //start ISR callback
+    timerStart(chron_timer);
+    timerAlarmEnable(chron_timer);
+
+}
+//stop the timer and turn off the LEDs
+void chronyHandler::end_isr()
+{
+
+    //stop ISR callback
+    timerAlarmDisable(chron_timer);
+    timerStop(chron_timer);
+
+    //disable LEDs
+    digitalWrite(IR_REC_POWER, true);
+	digitalWrite(IR_EMITTER, true);
+
+}
+//get current chronograph dart count and speed
+void chronyHandler::get_darts(unsigned long * deltaMicros, unsigned int * count)
+{
+
+    //do not update values if we're in the middle of a read (will yield a garbage value otherwise)
+    if(!chron_state)
+    {
+        //overflow protection
+        if(micros_end < micros_start)
+            lastDeltaMicros = (0xFFFFFFFF - micros_start) + micros_end;
+        else
+            lastDeltaMicros = micros_end - micros_start;
+    }
+
+
+    *deltaMicros = lastDeltaMicros;
+    *count = chron_count;
+
+}
+//reset dart count back to 0
+void chronyHandler::reset_darts()
+{
+    chron_count = 0;
+}
+
+
 
 
 //buzzer functions:

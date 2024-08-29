@@ -51,8 +51,6 @@ class singleMotor
     //run this consecutively instead of update()
     bool calibrate_speed();
 
-    //change the delay_millis value (artificial rev times)
-    int set_delay_millis(int newDelay);
 
     private:
 

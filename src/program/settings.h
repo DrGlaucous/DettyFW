@@ -12,6 +12,7 @@ typedef enum shoot_mode_e
     SHOOT_MODE_FULL_AUTO,
     SHOOT_MODE_SELECT_FIRE,
     SHOOT_MODE_CACHE,
+    SHOOT_MODE_NOPUSH,
 
     SHOOT_MODE_MAX,
 
@@ -70,6 +71,8 @@ typedef struct all_settings_s
 
     //wifi: (TODO)
 
+
+    
     int selected_preset = 0;
     int preset_hold_time = 1000;
 
@@ -77,6 +80,41 @@ typedef struct all_settings_s
     live_settings_t preset_settings[3];
 
 } all_settings_t;
+
+
+//telemetry data (nothing for now) to be fed back to the display devices,
+//also includes I/O states
+typedef struct telemetry_settings_s
+{
+    int happiness_level = 0;
+}telemetry_settings_t;
+
+//uses queues to share settings and telemetry across several sub-tasks
+class sharedSettingsHandler
+{
+    public:
+        sharedSettingsHandler();
+
+        void start();
+
+        bool sendSettings(all_settings_t* settingsBuffer);
+        bool getSettings(all_settings_t* settingsBuffer);
+        bool sendTelemetry(telemetry_settings_t* telemBuffer);
+        bool getTelemetry(telemetry_settings_t* telemBuffer);
+
+    private:
+        QueueHandle_t settings_queue;
+        QueueHandle_t telemetry_queue;
+
+
+
+};
+
+
+
+
+
+
 
 
 // This section is currently unused.

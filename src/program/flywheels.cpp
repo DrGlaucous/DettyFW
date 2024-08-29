@@ -268,10 +268,7 @@ int singleMotor::get_current_speed(bool actualSpeed)
 
 }
 
-int singleMotor::set_delay_millis(int newDelay)
-{
-    delay_millis = newDelay;
-}
+
 
 //constructor, assigns pins and creates ESC objects based on the contents of 'configuration.h'
 flywheelHandler::flywheelHandler()

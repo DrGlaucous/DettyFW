@@ -6,6 +6,7 @@
 
 #include "main.h"
 #include "configuration.h"
+#include "settings.h"
 
 //the menu library
 #include <GEM_u8g2.h>
@@ -38,12 +39,25 @@ class menuHandler
 
     } display_list_t;
 
+    typedef enum action_list_e
+    {
+        ACTION_CHANGE_MENU,
+        ACTION_SAVE_SETTINGS,
+        ACTION_RPM_AUTOCONFIG,
+        ACTION_PROCESS_PUSHER_SETTINGS,
+        ACTION_PUSH_LIVE_SETTINGS,
+
+        ACTION_MAX,
+    } action_list_t;
+
+
     //callback datapacks for the various buttons
     typedef struct callback_datapack_s //for setting a number
     {
         menuHandler* parent;
-        int action_no;
+        action_list_t action_no;
         display_list_t screen_type;
+        all_settings_t* settings;
 
     } callback_datapack_t;
 
@@ -70,6 +84,12 @@ class menuHandler
         "pre C",
     };
 
+
+    //local copy of the blaster's settings to be modified and pushed back to the backend
+    all_settings_t settings_clone; //no need to initialize the object, all vars come pre-initalized
+    //indicates it's time to push out a settings update
+    bool settings_changed = false;
+
     //a re-used live setting list to act as an intermediary between the GUI and the real live settings
     live_settings_t current_live_set = {};
     int testInt = 0;
@@ -82,16 +102,16 @@ class menuHandler
 
 
     //callback settings for the menu
-    callback_datapack_t saveSettingsDP = {this, 1, DISPLAY_NULL};
-    callback_datapack_t bindPresetDP = {this, 0, DISPLAY_BIND_PRESET};
-    callback_datapack_t rpmAutoconfigDP = {this, 2, DISPLAY_NULL};
-    callback_datapack_t pusherSettingChangeDP = {this, 3, DISPLAY_NULL};
-    callback_datapack_t shootPowerDP = {this, 0, DISPLAY_FLYWHEEL_POWER};
-    callback_datapack_t shootRateDP = {this, 0, DISPLAY_PUSH_RATE};
-    callback_datapack_t flywheelRPMDP = {this, 0, DISPLAY_FLYWHEEL_RPM};
-    callback_datapack_t ammoCountDP = {this, 0, DISPLAY_AMMO_COUNT};
-    callback_datapack_t fpsViewDP = {this, 0, DISPLAY_FPS};
-    callback_datapack_t liveSettingsDP = {this, 4, DISPLAY_NULL};
+    const callback_datapack_t saveSettingsDP = {this, ACTION_SAVE_SETTINGS, DISPLAY_NULL, &settings_clone};
+    const callback_datapack_t bindPresetDP = {this, ACTION_CHANGE_MENU, DISPLAY_BIND_PRESET, &settings_clone};
+    const callback_datapack_t rpmAutoconfigDP = {this, ACTION_RPM_AUTOCONFIG, DISPLAY_NULL, &settings_clone};
+    const callback_datapack_t pusherSettingChangeDP = {this, ACTION_PROCESS_PUSHER_SETTINGS, DISPLAY_NULL, &settings_clone};
+    const callback_datapack_t shootPowerDP = {this, ACTION_CHANGE_MENU, DISPLAY_FLYWHEEL_POWER, &settings_clone};
+    const callback_datapack_t shootRateDP = {this, ACTION_CHANGE_MENU, DISPLAY_PUSH_RATE, &settings_clone};
+    const callback_datapack_t flywheelRPMDP = {this, ACTION_CHANGE_MENU, DISPLAY_FLYWHEEL_RPM, &settings_clone};
+    const callback_datapack_t ammoCountDP = {this, ACTION_CHANGE_MENU, DISPLAY_AMMO_COUNT, &settings_clone};
+    const callback_datapack_t fpsViewDP = {this, ACTION_CHANGE_MENU, DISPLAY_FPS, &settings_clone};
+    const callback_datapack_t liveSettingsDP = {this, ACTION_PUSH_LIVE_SETTINGS, DISPLAY_NULL, &settings_clone};
 
     //list items
     SelectOptionInt fireTypeListOptions[3] =
@@ -157,8 +177,8 @@ class menuHandler
     //sets a flag that corresponds to the menu that should be entered
     static void handleCallback(GEMCallbackData inData);
 
-
-    static void pushLiveSettings(live_settings_t fromThis, live_settings_t* toThis);
+    //copy the settings the menu holds to the master settings index
+    void pushLiveSettings(live_settings_t fromThis, live_settings_t* toThis);
 
     //puts the menu elements onscreen
     void screenDrawLoop(void);

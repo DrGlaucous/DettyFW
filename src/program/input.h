@@ -3,12 +3,24 @@
 
 #include <Arduino.h>
 #include <Bounce2.h>
-
 //setup encoder stuff here (must be before library)
 #define ENCODER_DO_NOT_USE_INTERRUPTS //not supported by the ESP32
 #include <Encoder.h>
 
 #include "configuration.h"
+
+//do we actually need this?
+//wrapper for debounce library for the display (love that memory safety)
+typedef struct io_state_s
+{
+
+}io_state_t;
+
+
+
+//inturrupt-safe analogRead function
+int safeAnalogRead(int pinNo);
+
 
 //unused abstraction layer class: if, for some reason, we can't use the bounce2 library,
 //this would make it possible to link any backend into the code, but bounce2 should do everything we need

@@ -25,21 +25,21 @@ toSettingsPage("Settings", settingsPage),
 	bindPreset("Bind Preset", handleCallback, (void*)&bindPresetDP),
 	escConfigPage("ESC Config"),
 	toEscConfigPage("ESC Config", escConfigPage),
-		escMinOutput("Min Out", gSettings.esc_output_min),
-		escMaxOutput("Max Out", gSettings.esc_output_max),
+		escMinOutput("Min Out", settings_clone.esc_output_min),
+		escMaxOutput("Max Out", settings_clone.esc_output_max),
 		escFeedbackPage("Feedback"),
 		toEscFeedbackPage("Feedback", escFeedbackPage),
-			escMinRPM("Min RPM", gSettings.esc_rpm_min),
-			escMaxRPM("Max RPM", gSettings.esc_rpm_max),
+			escMinRPM("Min RPM", settings_clone.esc_rpm_min),
+			escMaxRPM("Max RPM", settings_clone.esc_rpm_max),
 			autoConfRPM("RPM Autoconfig", handleCallback, (void*)&rpmAutoconfigDP),
 	pusherConfigPage("Pusher Config"),
 	toPusherConfigPage("Pusher Config", pusherConfigPage),
-		minExtendTime("Min Ext Time", gSettings.so_min_ext_time, handleCallback, (void*)&pusherSettingChangeDP),
-		maxExtendTime("Max Ext time", gSettings.so_max_ext_time, handleCallback, (void*)&pusherSettingChangeDP),
-		minRetractTime("Min Ret Time", gSettings.so_min_ret_time, handleCallback, (void*)&pusherSettingChangeDP),
+		minExtendTime("Min Ext Time", settings_clone.so_min_ext_time, handleCallback, (void*)&pusherSettingChangeDP),
+		maxExtendTime("Max Ext time", settings_clone.so_max_ext_time, handleCallback, (void*)&pusherSettingChangeDP),
+		minRetractTime("Min Ret Time", settings_clone.so_min_ret_time, handleCallback, (void*)&pusherSettingChangeDP),
 	wifiPage("Wifi"),
 	toWifiPage("Wifi", wifiPage),
-		wifiButton("Not Done Yet", gSettings.so_min_ret_time, true), //random value in here for now
+		wifiButton("Not Done Yet", settings_clone.so_min_ret_time, true), //random value in here for now
 shootPower("Power", handleCallback, (void*)&shootPowerDP),
 shootRate("Rate", handleCallback, (void*)&shootRateDP),
 shootModePage("Shoot Mode"),
@@ -55,11 +55,13 @@ ammoCount("Ammo View", handleCallback, (void*)&ammoCountDP),
 fpsView("FPS View", handleCallback, (void*)&fpsViewDP),
 menu(u8g2)
 {
-	pushLiveSettings(gSettings.preset_settings[gSettings.selected_preset], &current_live_set);
+	pushLiveSettings(settings_clone.preset_settings[settings_clone.selected_preset], &current_live_set);
 }
 
 void menuHandler::start()
 {
+
+
 	u8g2.begin(); //led backend
 
 
@@ -67,6 +69,7 @@ void menuHandler::start()
 	menu.setSplashDelay(0);
 	menu.init();
 	
+
 	//add items to menu
 
 	//root
@@ -132,6 +135,23 @@ void menuHandler::start()
 
 void menuHandler::update()
 {
+	//get the latest settings and telemetry from the backend
+	{
+		all_settings_t freshSettings;
+		if (gSettingsShare.getSettings(&freshSettings))
+		{
+			memcpy(&settings_clone, &freshSettings, sizeof(all_settings_t));
+		}
+
+		telemetry_settings_t freshTelem;
+		if (gSettingsShare.getTelemetry(&freshTelem))
+		{
+			//TODO: find a home for the telemetry data
+			//no home for now
+			//memcpy(&settings_clone, &freshSettings, sizeof(all_settings_t));
+		}
+	}
+
 	bool needsRefresh = false;
 
 	if(handlePreset()) //switch presets if needed
@@ -144,6 +164,7 @@ void menuHandler::update()
 	{
 		drawing_screen = true;
 		first_page = true;
+
 	}
 
 
@@ -161,6 +182,13 @@ void menuHandler::update()
 		screenDrawLoop();
 	else
 		drawing_screen = false;
+
+
+	//send out settings if something changed
+	//if(settings_changed)
+	//	gSettingsShare.sendSettings(&settings_clone);
+
+
 
 }
 
@@ -185,34 +213,34 @@ bool menuHandler::handlePreset()
 
 	if(preset_switched == false
 		&& gPins.presetA.isPressed()
-		&& gPins.presetA.currentDuration() > gSettings.preset_hold_time)
+		&& gPins.presetA.currentDuration() > settings_clone.preset_hold_time)
 	{
-		gSettings.selected_preset = PRESET_A;
+		settings_clone.selected_preset = PRESET_A;
 		preset_switched = true;
 		needsRefresh = true;
 		gBuzzer.beep_single(100000);
 	}
 	if(preset_switched == false
 		&& gPins.presetB.isPressed()
-		&& gPins.presetB.currentDuration() > gSettings.preset_hold_time)
+		&& gPins.presetB.currentDuration() > settings_clone.preset_hold_time)
 	{
-		gSettings.selected_preset = PRESET_B;
+		settings_clone.selected_preset = PRESET_B;
 		preset_switched = true;
 		needsRefresh = true;
 		gBuzzer.beep_single(100000);
 	}
 	if( preset_switched == false
 		&& gPins.presetC.isPressed()
-		&& gPins.presetC.currentDuration() > gSettings.preset_hold_time)
+		&& gPins.presetC.currentDuration() > settings_clone.preset_hold_time)
 	{
-		gSettings.selected_preset = PRESET_C;
+		settings_clone.selected_preset = PRESET_C;
 		preset_switched = true;
 		needsRefresh = true;
 		gBuzzer.beep_single(100000);
 	}
 
 	if(needsRefresh)
-		pushLiveSettings(gSettings.preset_settings[gSettings.selected_preset], &current_live_set);
+		pushLiveSettings(settings_clone.preset_settings[settings_clone.selected_preset], &current_live_set);
 
 	return needsRefresh;
 
@@ -275,7 +303,7 @@ bool menuHandler::handleNav()
 		case DISPLAY_FLYWHEEL_POWER: //update flywheel speed in the settings
 		{
 
-			live_settings_t *currentLS = &gSettings.preset_settings[gSettings.selected_preset];
+			live_settings_t *currentLS = &settings_clone.preset_settings[settings_clone.selected_preset];
 			currentLS->flywheel_speed -= gPins.delta_encoder_val * (FLYWHEEL_SPEED_MAX - FLYWHEEL_SPEED_MIN) / 48;
 
 			if(currentLS->flywheel_speed > FLYWHEEL_SPEED_MAX)
@@ -296,7 +324,7 @@ bool menuHandler::handleNav()
 		case DISPLAY_PUSH_RATE: //update pusher speed in the settings
 		{
 
-			live_settings_t *currentLS = &gSettings.preset_settings[gSettings.selected_preset];
+			live_settings_t *currentLS = &settings_clone.preset_settings[settings_clone.selected_preset];
 			currentLS->pusher_rate -= gPins.delta_encoder_val * (PUSHER_SPEED_MAX - PUSHER_SPEED_MIN) / 48;
 
 			if(currentLS->pusher_rate > PUSHER_SPEED_MAX)
@@ -314,7 +342,10 @@ bool menuHandler::handleNav()
 
 			break;
 		}
-		
+		case DISPLAY_FPS: //show FPS counter
+		{
+			someUpdate = true; //always refresh the screen
+		}
 
 	}
 
@@ -324,37 +355,43 @@ bool menuHandler::handleNav()
 	return someUpdate;
 }
 
+//push settings from the menu to the backend (for freeRTOS, we should use a queue here)
 void menuHandler::pushLiveSettings(live_settings_t fromThis, live_settings_t* toThis)
 {
+	settings_changed = true;
 	memcpy(toThis, &fromThis, sizeof(live_settings_t));
 }
 
-//performa a certain action depending on the menu option pressed
+//perform a certain action depending on the menu option pressed
 void menuHandler::handleCallback(GEMCallbackData inData)
 {
 
 	callback_datapack_t* castData = (callback_datapack_t*)inData.valPointer;
 
+	all_settings_t* settings = castData->settings;
+
 	bool change_menu = false;
 	switch(castData->action_no)
 	{
 		default:
-		case 0: //change menu to be drawn
-			change_menu = true;
+		case ACTION_MAX:
+		case ACTION_CHANGE_MENU: //change menu to be drawn
+			change_menu = true; //refreshes the screen
 			break;
-		case 1: //save settings
+		case ACTION_SAVE_SETTINGS: //save settings
 			//todo: this
 			break;
-		case 2: //autoconfig RPM
+		case ACTION_RPM_AUTOCONFIG: //autoconfig RPM
 			//todo: this
 			break;
-		case 3: //process pusher settings
-			gSettings.so_max_ret_time = (gSettings.so_max_ext_time / gSettings.so_min_ext_time) * gSettings.so_min_ret_time;
+		case ACTION_PROCESS_PUSHER_SETTINGS: //process pusher settings
+			settings->so_max_ret_time = (settings->so_max_ext_time / settings->so_min_ext_time) * settings->so_min_ret_time;
 			break;
-		case 4: //update the preset's settings
+		case ACTION_PUSH_LIVE_SETTINGS: //update the preset's settings
 			//copy the menu's settings to the preset
-			pushLiveSettings(castData->parent->current_live_set, &gSettings.preset_settings[gSettings.selected_preset]);
+			castData->parent->pushLiveSettings(castData->parent->current_live_set, &settings->preset_settings[settings->selected_preset]);
 			break;
+
 
 
 
@@ -386,7 +423,7 @@ void menuHandler::screenDrawLoop(void)
 		case DISPLAY_FLYWHEEL_POWER: //SET the speed
 			{
 				//show selected preset
-				drawSelectedPreset(&u8g2, 0, DISPLAY_HEIGHT - 8, DISPLAY_WIDTH, 8, preset_labels, 3, gSettings.selected_preset);
+				drawSelectedPreset(&u8g2, 0, DISPLAY_HEIGHT - 8, DISPLAY_WIDTH, 8, preset_labels, 3, settings_clone.selected_preset);
 
 
 				//show voltage
@@ -398,9 +435,9 @@ void menuHandler::screenDrawLoop(void)
 							(DISPLAY_HEIGHT - 20) / 2,
 							FLYWHEEL_SPEED_MIN,
 							FLYWHEEL_SPEED_MAX,
-							gSettings.preset_settings[gSettings.selected_preset].flywheel_speed);
+							settings_clone.preset_settings[settings_clone.selected_preset].flywheel_speed);
 
-				float percentPower = map_float(gSettings.preset_settings[gSettings.selected_preset].flywheel_speed, FLYWHEEL_SPEED_MIN, FLYWHEEL_SPEED_MAX, 0, 100);
+				float percentPower = map_float(settings_clone.preset_settings[settings_clone.selected_preset].flywheel_speed, FLYWHEEL_SPEED_MIN, FLYWHEEL_SPEED_MAX, 0, 100);
 				//draw percentage below gauge
 				char percentText[10] = {}; //should be 8, but 10 for safety
 				sprintf(percentText, "%.2f%%", percentPower); //"000.00%"
@@ -422,9 +459,9 @@ void menuHandler::screenDrawLoop(void)
 							(DISPLAY_HEIGHT - 20) / 2,
 							PUSHER_SPEED_MIN,
 							PUSHER_SPEED_MAX,
-							gSettings.preset_settings[gSettings.selected_preset].pusher_rate);
+							settings_clone.preset_settings[settings_clone.selected_preset].pusher_rate);
 
-				float percentRate = map_float(gSettings.preset_settings[gSettings.selected_preset].pusher_rate, PUSHER_SPEED_MIN, PUSHER_SPEED_MAX, 0, 100);
+				float percentRate = map_float(settings_clone.preset_settings[settings_clone.selected_preset].pusher_rate, PUSHER_SPEED_MIN, PUSHER_SPEED_MAX, 0, 100);
 				//draw percentage below gauge
 				char percentText[10] = {}; //should be 8, but 10 for safety
 				sprintf(percentText, "%.2f%%", percentRate); //"000.00%"
@@ -442,7 +479,12 @@ void menuHandler::screenDrawLoop(void)
 				screen_type = DISPLAY_MENU;
 				break;
 			}
-
+		case DISPLAY_FPS:
+			{
+				gBuzzer.beep_single(100000);
+				screen_type = DISPLAY_MENU;
+				break;
+			}
 
 	}
 

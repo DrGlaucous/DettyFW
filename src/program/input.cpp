@@ -11,6 +11,21 @@ Handles generic user-acutated inputs (things like buttons and such...)
 
 #include <Encoder.h>
 
+//public function to handle analogRead lockouts
+//returns -1 if locked out
+int safeAnalogRead(int pinNo)
+{
+    static bool lockout = false;
+    if(!lockout)
+    {
+        lockout = true;
+        int result = analogRead(pinNo);
+        lockout = false;
+        return result;
+
+    }
+    return -1;
+}
 
 
 inputHandler::inputHandler(void)
@@ -116,8 +131,8 @@ void inputHandler::update(void)
     delta_encoder_val = encoder_val/4 - last_encoder_val;
     last_encoder_val = encoder_val / 4;
 
-    //read the raw value from the ADC
-    voltmeter_read = analogRead(VOLTMETER_PIN);
+    //read the raw value from the ADC (weird bug: this conflicts with analogRead from the ISR pin on the LED)
+    voltmeter_read = safeAnalogRead(VOLTMETER_PIN);
 
 }
 
@@ -126,5 +141,18 @@ void inputHandler::update_encoder(void)
     //keeps track of all updates, zeros out every time the normal update function is called, like the rest of the inputs
     encoder_val = rotaryEncoder.read();
 }
+
+
+
+
+//do we need to?
+//if we make a custom ISR inturrupt libarary:
+//methods used by outsiders:
+//isPressed
+//pressed
+//released
+//changed
+//currentDuration (in ms)
+
 
 

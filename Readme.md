@@ -5,7 +5,7 @@ This was originally part of the [G4](https://github.com/DrGlaucous/G4) repositor
 
 
 ## Branch info
-This version doesn't use freeRTOS tasks. Everything (including display) is run inline.
+This version of the firmware uses FreeRTOS tasks to split the lcd code from the rest of the program.
 
 
 

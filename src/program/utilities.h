@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 #include <Arduino.h>
 #include "configuration.h"
 
@@ -19,6 +17,21 @@ class serialHandler
 
 };
 
+//handles the IR leds in front of the flywheel cage (for chronograph and ammo counter)
+class chronyHandler
+{
+    public:
+        chronyHandler(void);
+        void begin_isr(void);
+        void end_isr(void);
+        void isr_proc(void);
+        void get_darts(unsigned long * deltaMicros, unsigned int * count);
+        void reset_darts(void);
+    private:
+        unsigned long lastDeltaMicros = 0;
+
+
+};
 
 //buzzer handler: let's make some noize!
 //currently only supports active buzzers (beep when a voltage is applied, no PWM)

@@ -25,6 +25,15 @@ class connectomeHandler
 
     private:
 
+
+        //get updated settings from the interface menu
+        void getNewSettings();
+
+        //make current telemetry avalable for the interface to display
+        void pushCurrentStatus();        
+
+
+        //for working with pres/commit trigger modes
         void triggerTypeHandler(bool release = false);
 
 

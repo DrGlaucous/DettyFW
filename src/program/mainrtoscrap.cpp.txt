@@ -1,0 +1,274 @@
+// #include <Arduino.h>
+
+// #include "main.h"
+// #include "configuration.h"
+// #include "settings.h"
+// #include "input.h"
+// #include "utilities.h"
+// #include "flywheels.h"
+// #include "pusher.h"
+// #include "display.h"
+// #include "connectome.h"
+
+// all_settings_t gSettings;
+// inputHandler gPins;
+// flywheelHandler gFlywheel;
+// pusherHandler gPusher;
+// serialHandler gInfo(DEBUG_BAUD_RATE);
+// buzzerHandler gBuzzer(BUZZER);
+// menuHandler gMenu;
+// trigHandler gTrig; //trigonometry
+// connectomeHandler gConnectome;
+// //chronyHandler gChronograph;
+
+
+// //this uses a hardware timer on the ESP32. It's much faster than freeRTOS at task intervals, but less well-integrated
+// //timer inturrupts to handle input buttons (actually just the encoder)
+// hw_timer_t *timer = NULL;
+// int ccccc = 0;
+// void IRAM_ATTR handleLoop()
+// {
+//     gPins.update_encoder();
+//     gBuzzer.update();
+
+// 	analogRead(IR_REC_READBACK);
+// }
+
+
+// //LED test
+// void Setup_Test_Chrony()
+// {
+// 	// pinMode(IR_REC_POWER, OUTPUT);
+// 	// pinMode(IR_REC_READBACK, INPUT);
+// 	// pinMode(IR_EMITTER, OUTPUT);
+// 	//gChronograph.begin_isr();
+
+// }
+// void Test_Chrony()
+// {
+// 	//turn on LEDs, get value, then turn them off
+// 	// digitalWrite(IR_REC_POWER, true);
+// 	// digitalWrite(IR_EMITTER, true);
+// 	// int result = analogRead(IR_REC_READBACK);
+// 	// digitalWrite(IR_REC_POWER, false);
+// 	// digitalWrite(IR_EMITTER, false);
+
+// 	unsigned long deltas = 0;
+// 	unsigned int count = 0;
+// 	//gChronograph.get_darts(&deltas, &count);
+
+// 	Serial.printf("Speed: %d || Count: %d\n", ccccc, count);
+
+
+// }
+
+
+
+// //not using freeRTOS right now...
+// /*
+// //define freeRTOS sub-tasks here:
+
+// //input handler task
+// void handleInput(void * parameters)
+// {
+//     TickType_t xLastWakeTime; //variable to hold the time when the task starts
+//     const TickType_t xFrequency = 1 / portTICK_PERIOD_MS; //how many ticks to wait between executions
+//     BaseType_t xWasDelayed; //use this var to determine if the task was delayed beyond the deadline (pdTRUE/pdFALSE)
+
+//     //initialise the xLastWakeTime variable with the current time.
+//     xLastWakeTime = xTaskGetTickCount();
+//     for( ;; )
+//     {
+//         //wait for the next cycle.
+// 		//xTaskDelay will perform a task on a set interval, unlike vTaskDelay
+//         xWasDelayed = xTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+// 		gPins.update_encoder();
+// 		gPins.update();
+// 		gBuzzer.update();
+
+//     }
+// }
+
+// //connectome handler task
+// void handleConnectome(void * parameters)
+// {
+//     TickType_t xLastWakeTime;
+//     const TickType_t xFrequency = 1 / portTICK_PERIOD_MS;
+//     BaseType_t xWasDelayed;
+
+//     xLastWakeTime = xTaskGetTickCount();
+//     for( ;; )
+//     {
+//         xWasDelayed = xTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+// 		//unique stuff:
+// 		gConnectome.update();
+
+//     }
+// }
+
+// //output handler task (flywheels and pusher)
+// void handleOutput(void * parameters)
+// {
+//     TickType_t xLastWakeTime;
+//     const TickType_t xFrequency = 1 / portTICK_PERIOD_MS;
+//     BaseType_t xWasDelayed;
+
+//     xLastWakeTime = xTaskGetTickCount();
+//     for( ;; )
+//     {
+//         xWasDelayed = xTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+// 		//unique stuff:
+// 		gFlywheel.update();
+// 		gPusher.update();
+
+//     }
+// }
+
+// //screen handler task (lowest priority)
+// void handleMenu(void * parameters)
+// {
+//     TickType_t xLastWakeTime;
+//     const TickType_t xFrequency = 100 / portTICK_PERIOD_MS;
+//     BaseType_t xWasDelayed;
+
+//     xLastWakeTime = xTaskGetTickCount();
+//     for( ;; )
+//     {
+//         xWasDelayed = xTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+// 		//unique stuff:
+// 		gMenu.update();
+
+//     }
+// }
+
+// */
+
+
+
+
+// void setup() {
+
+
+// 	pinMode(IR_REC_POWER, OUTPUT);
+// 	pinMode(IR_REC_READBACK, INPUT);
+// 	pinMode(IR_EMITTER, OUTPUT);
+//     digitalWrite(IR_REC_POWER, true);
+// 	digitalWrite(IR_EMITTER, true);
+
+
+
+//     //delay(1000);
+//     gMenu.start();
+
+//     //create inturrupt (I *want* to replace this with freeRTOS, but shared memory...)
+//     timer = timerBegin(0, 80, true);
+//     timerAttachInterrupt(timer, &handleLoop, true);
+//     timerAlarmWrite(timer, 1000, true); // every 0.01 seconds
+//     timerAlarmEnable(timer);
+
+//     //gInfo.send_message("weee");
+//     //gBuzzer.beep_multiple(10000, 30000, 10);
+
+
+// 	//start FreeRTOS tasks (unused for now...)
+// 	/*
+// 	{
+
+// 		xTaskCreate(
+//         handleInput,    // Function that should be called
+//         "Handle Input", // Name of the task (for debugging)
+//         1000,     // Stack size (bytes)
+//         NULL,     // Parameter to pass
+//         2,        // Task priority
+//         NULL      // Task handle
+//   		);
+
+// 		xTaskCreate(
+//         handleConnectome,    // Function that should be called
+//         "Handle Connectome", // Name of the task (for debugging)
+//         1000,     // Stack size (bytes)
+//         NULL,     // Parameter to pass
+//         1,        // Task priority
+//         NULL      // Task handle
+//   		);
+
+// 		xTaskCreate(
+//         handleOutput,    // Function that should be called
+//         "Handle Output", // Name of the task (for debugging)
+//         1000,     // Stack size (bytes)
+//         NULL,     // Parameter to pass
+//         1,        // Task priority
+//         NULL      // Task handle
+//   		);
+
+// 		xTaskCreate(
+//         handleMenu,    // Function that should be called
+//         "Handle Menu", // Name of the task (for debugging)
+//         1000,     // Stack size (bytes)
+//         NULL,     // Parameter to pass
+//         0,        // Task priority
+//         NULL      // Task handle
+//   		);
+
+// 	}
+// 	*/
+
+
+// 	Setup_Test_Chrony();
+
+// }
+
+// void loop() {
+
+// 	//continued loop code:
+
+//     gPins.update();
+//     gMenu.update();
+
+//     gConnectome.update();
+
+// 	gFlywheel.update();
+// 	gPusher.update();
+
+// 	Test_Chrony();
+
+// }
+
+
+#include <Arduino.h>
+#include "configuration.h"
+
+hw_timer_t *timer = NULL;
+int res = 0;
+void IRAM_ATTR handleLoop()
+{
+	res = analogRead(IR_REC_READBACK);
+}
+
+void setup()
+{
+	Serial.begin(DEBUG_BAUD_RATE);
+	pinMode(IR_REC_POWER, OUTPUT);
+	pinMode(IR_REC_READBACK, INPUT);
+	pinMode(IR_EMITTER, OUTPUT);
+    digitalWrite(IR_REC_POWER, true);
+	digitalWrite(IR_EMITTER, true);
+
+
+	//create inturrupt (I *want* to replace this with freeRTOS, but shared memory...)
+    timer = timerBegin(1, 80, true);
+    timerAttachInterrupt(timer, &handleLoop, true);
+    timerAlarmWrite(timer, 1000, true); // every 0.01 seconds
+    timerAlarmEnable(timer);
+}
+
+void loop()
+{
+	int voltmeter_read = analogRead(VOLTMETER_PIN);
+	delay(100);
+ 	Serial.printf("ADC: %d || %d\n", res, voltmeter_read);
+}

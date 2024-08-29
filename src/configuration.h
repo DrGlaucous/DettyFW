@@ -30,7 +30,7 @@
 
 //time in milliseconds between 0 and full before the motor is considered "at speed"
 //if ESC_DSHOT_BIDIR is set to true, then this value is ignored
-#define ESC_REV_DELAY 1000
+#define ESC_REV_DELAY 300
 
 //delay in milliseoconds the program should take to decelerate the ESC.
 //it hurts both the battery and the ESC to be dropped right to 0 each time the trigger is let off (many ESCs enforce active motor breaking),
@@ -50,7 +50,7 @@
 //(can be closely estimated by multiplying kv by voltage)
 //for motors without telemetry, these value can be set to anything with decent resolution (to get a "fake" telemetry gauge)
 #define ESC_RPM_MIN 0 
-#define ESC_RPM_MAX 36800 //39733 //36800 || //29800 //27600 
+#define ESC_RPM_MAX 39733 //36800 || //29800 //27600 
 
 
 //only have the option for this if we have the dshot type,
@@ -58,7 +58,7 @@
     //dshot mode
     #define ESC_DSHOT_MODE DSHOT300
     //enables eRPM telemetry
-    #define ESC_DSHOT_BIDIR true
+    #define ESC_DSHOT_BIDIR false
     //number of magnet poles the motor has, important for getting real RPM from eRPM
     #define ESC_DSHOT_MOTOR_POLES 14
 #endif
@@ -105,9 +105,9 @@
 //the pin that controls the solenoid FET
 #define SO_FET_PIN 32 //use buzzer for testing
 //time in ms it takes the solenoid to extend
-#define SO_MIN_EXT_TIME 25
+#define SO_MIN_EXT_TIME 35
 //time in ms it takes the solenoid to retract
-#define SO_MIN_RET_TIME 25
+#define SO_MIN_RET_TIME 35
 //max time the solenoid is allowed to be ON
 #define SO_MAX_EXT_TIME 200
 
@@ -122,7 +122,7 @@
 //all buttons will use internal pullup resistors by default
 
 //debounce time in ms
-#define DEBOUNCE_TIME 10
+#define DEBOUNCE_TIME 20
 
 //the pin that this element occupies
 #define TRIGGER_PIN 17

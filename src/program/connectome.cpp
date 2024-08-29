@@ -15,6 +15,13 @@ connectomeHandler::connectomeHandler()
 
 void connectomeHandler::update()
 {
+    //update the main settings from the menu settings if there are any changes
+    all_settings_t freshSettings;
+    if(gSettingsShare.getSettings(&freshSettings))
+    {
+        memcpy(&gSettings, &freshSettings, sizeof(all_settings_t));
+    }
+
 
     live_settings_t *currentSet = &gSettings.preset_settings[gSettings.selected_preset];
 
@@ -22,6 +29,8 @@ void connectomeHandler::update()
     if(currentSet->shoot_mode != SHOOT_MODE_CACHE)
         cache_in_progress = false;
 
+    //Temp case: force not using the pusher at all
+    //switch(SHOOT_MODE_NOPUSH)
     switch(currentSet->shoot_mode)
     {
         default:
@@ -137,6 +146,24 @@ void connectomeHandler::update()
             }
 
             break;
+        case SHOOT_MODE_NOPUSH: //run flywheels, but pusher is disabled (I use this for sanding flywheels)
+            if(gPins.triggerSwitch.isPressed())
+            {
+                if(gPins.triggerSwitch.pressed())
+                {
+                    gFlywheel.set_target_speed(currentSet->flywheel_speed);
+                }
+            }
+            else if(gPins.triggerSwitch.released())
+            {
+                push_in_progress = false;
+                gFlywheel.set_target_speed(0);
+                gPusher.halt();
+
+            }
+
+            break;
+
     }
 
 
