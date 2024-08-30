@@ -1,5 +1,8 @@
 //configuration stuff goes here
+
 #pragma once
+
+#include <DShotRMT.h>
 
 
 
@@ -201,8 +204,8 @@
 
 //setup i2c display, see https://github.com/olikraus/u8g2/wiki/u8g2setupcpp for a list of proper constructors
 //currently, this sets up a generic 128x64 display on the hardware i2c BUS
-//#include <U8g2lib.h>
-//#define INIT_CLASS U8G2_SSD1306_128X64_NONAME_1_HW_I2C
+#include <U8g2lib.h>
+#define INIT_CLASS U8G2_SSD1306_128X64_NONAME_1_HW_I2C
 
 
 #define DEBUG_BAUD_RATE 115200//9600

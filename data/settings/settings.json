@@ -1,0 +1,120 @@
+{
+    "debug": {
+        "enabled":true,
+        "baud_rate":115200
+    },
+
+    "oled_user_interface":{
+        "pins": {
+            "i2c": {
+                "sda": 19,
+                "scl": 22
+            },
+            "preset_a": {
+                "num": 27,
+                "nc":false,
+                "debounce_time": 10
+            },
+            "preset_b": {
+                "num": 14,
+                "nc":false  ,
+                "debounce_time": 10 
+            },
+            "preset_c": {
+                "num": 12,
+                "nc":false,
+                "debounce_time": 10
+            },
+            "encoder_button": {
+                "num": 26,
+                "nc":false,
+                "debounce_time": 10
+            },
+            "encoder": {
+                "num_a": 25,
+                "num_b": 33 
+            },
+            "buzzer": {
+                "num": 13,
+                "on_high":true
+            }
+
+        },
+        "display_width": 128,
+        "display_height": 64
+    },
+
+    "voltmeter": {
+        "voltmeter_input": {
+            "num": 34 
+        },
+        "adc_value_ref_1": 0,
+        "adc_voltage_ref_1": 0,
+        "adc_value_ref_2": 800,
+        "adc_voltage_ref_2": 0.772,
+
+        "batt_full_charge": 16.0,
+        "batt_empty_charge": 12.0
+
+    },
+
+    "ir_detector": {
+        "pins": {
+            "ir_reciever_power": {
+                "num": 15,
+                "on_high":true
+            },
+            "ir_emitter_power": {
+                "num": 2,
+                "on_high":true
+            },
+            "ir_reciever_read": {
+                "num": 35
+            },
+            "mag_release": {
+                "num": 5,
+                "nc":false,
+                "debounce_time": 10
+            }
+
+        }
+    },
+
+    "pusher": {
+        "pins": {
+            "fet": {
+                "num": 32,
+                "on_high":true
+            }
+        },
+        "min_extend_time": 25,
+        "min_retract_time": 25,
+        "max_extend_time": 200
+    },
+
+    "flywheels": {
+        "pins": {
+            "motor_l": 18,
+            "motor_r": 24
+        },
+        "dshot_mode": 2,
+        "downthrottle_time": 3000,
+        "idle_rpm": 600,
+        "idle_time_ms": 10000,
+        "brushless_motor_kv": 2300,
+        "average_battery_voltage": 15.0
+    },
+
+    "handle": {
+        "shoot_trigger": {
+            "num": 13,
+            "nc":false
+        },
+        "rev_trigger": {
+            "num": -1,
+            "nc":false   
+        }
+
+    }
+
+}
