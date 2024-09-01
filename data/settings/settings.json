@@ -17,21 +17,25 @@
                 "preset_a": {
                     "num": 27,
                     "nc":false,
+                    "pullup":true,
                     "debounce_time": 10
                 },
                 "preset_b": {
                     "num": 14,
-                    "nc":false  ,
+                    "nc":false,
+                    "pullup":true,
                     "debounce_time": 10 
                 },
                 "preset_c": {
                     "num": 12,
                     "nc":false,
+                    "pullup":true,
                     "debounce_time": 10
                 },
                 "encoder_button": {
                     "num": 26,
                     "nc":false,
+                    "pullup":true,
                     "debounce_time": 10
                 },
                 "encoder": {
@@ -49,13 +53,13 @@
         },
     
         "voltmeter": {
-            "voltmeter_input": {
+            "voltmeter_read_pin": {
                 "num": 34 
             },
             "adc_value_ref_1": 0,
-            "adc_voltage_ref_1": 0,
+            "voltage_ref_1": 0,
             "adc_value_ref_2": 800,
-            "adc_voltage_ref_2": 0.772,
+            "voltage_ref_2": 0.772,
     
             "batt_full_charge": 16.0,
             "batt_empty_charge": 12.0
@@ -72,16 +76,20 @@
                     "num": 2,
                     "on_high":true
                 },
-                "ir_reciever_read": {
+                "ir_reciever_read_pin": {
                     "num": 35
                 },
                 "mag_release": {
                     "num": 5,
                     "nc":false,
+                    "pullup":true,
                     "debounce_time": 10
                 }
     
-            }
+            },
+            "adc_falling_threshhold": 100,
+            "adc_rising_threshhold": 200,
+            "dart_length_mm": 36
         },
     
         "pusher": {
@@ -91,18 +99,18 @@
                     "on_high":true
                 }
             },
-            "min_extend_time": 25,
-            "min_retract_time": 25,
-            "max_extend_time": 200
+            "min_extend_time_ms": 25,
+            "min_retract_time_ms": 25,
+            "max_extend_time_ms": 200
         },
     
         "flywheels": {
             "pins": {
-                "motor_l": 18,
-                "motor_r": 24
+                "motor_l_pin": 18,
+                "motor_r_pin": 24
             },
             "dshot_mode": 2,
-            "downthrottle_time": 3000,
+            "downthrottle_time_ms": 3000,
             "idle_rpm": 600,
             "idle_time_ms": 10000,
             "brushless_motor_kv": 2300,
@@ -112,11 +120,15 @@
         "handle": {
             "shoot_trigger": {
                 "num": 13,
-                "nc":false
+                "nc":false,
+                "pullup":true,
+                "debounce_time": 10
             },
             "rev_trigger": {
                 "num": -1,
-                "nc":false   
+                "nc":false,
+                "pullup":true,
+                "debounce_time": 10
             }
     
         }
