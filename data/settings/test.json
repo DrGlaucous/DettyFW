@@ -44,9 +44,6 @@
                 }
     
             },
-            "preset_a_index": 0,
-            "preset_b_index": 0,
-            "preset_c_index": 1,
             "display_width": 128,
             "display_height": 64
         },  
@@ -134,8 +131,8 @@
                 "trigger_mode": 0,
                 "shoot_mode": 0,
                 "burst_count":1,
-                "cache_delay_ms": 300,
-                "push_rate_pct": 50,
+                "cache_delay": 300,
+                "push_rate": 50,
                 "flywheel_rpm": 4000
             },
             {
@@ -147,6 +144,9 @@
                 "push_rate_pct": 50,
                 "flywheel_rpm": 4000
             }
-        ]
+        ],
+        "preset_a_index": 0,
+        "preset_b_index": 0,
+        "preset_c_index": 1
     }
 }

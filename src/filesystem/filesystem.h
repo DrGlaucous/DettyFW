@@ -12,6 +12,8 @@ namespace filesystem{
 
     bool readFile(const char * path, uint8_t** buffer, size_t* size);
 
+    void readFile2(const char * path);
+
     bool writeFile(const char * path, const uint8_t * buffer, size_t size);
 
     bool appendFile(const char * path, const uint8_t * buffer, size_t size);

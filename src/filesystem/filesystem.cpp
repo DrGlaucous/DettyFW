@@ -53,6 +53,7 @@ namespace filesystem {
             }
             file = root.openNextFile();
         }
+        return true;
     }
 
     bool createDir(const char * path){
@@ -77,6 +78,7 @@ namespace filesystem {
 
         File file = LittleFS.open(path);
         if(!file || file.isDirectory()){
+            //Serial.println("- failed to open file for reading");
             return false;
         }
 
@@ -96,6 +98,23 @@ namespace filesystem {
 
         return true;
 
+    }
+
+    //read to serial terminal (for debug)
+    void readFile2(const char * path){
+        Serial.printf("Reading file: %s\r\n", path);
+
+        File file = LittleFS.open(path);
+        if(!file || file.isDirectory()){
+            Serial.println("- failed to open file for reading");
+            return;
+        }
+
+        Serial.println("- read from file:");
+        while(file.available()){
+            Serial.write(file.read());
+        }
+        file.close();
     }
 
     bool writeFile(const char * path, const uint8_t * buffer, size_t size){

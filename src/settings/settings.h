@@ -10,7 +10,7 @@ using std::string;
 using std::vector;
 
 
-#define SETTINGS_DIRECTORY "settings/settings.json"
+#define SETTINGS_DIRECTORY "/settings/settings.json"
 
 //convention:
 /*
@@ -20,19 +20,19 @@ use of enums must always use the qualifier: enum::qualifier
 */
 
 typedef enum ShootMode {
-    Null = 0,
-    FullAuto = 1,
-    SelectFire = 2,
-    Cache = 3,
-    Max,
+    ShootModeNull = 0,
+    ShootModeFullAuto = 1,
+    ShootModeSelectFire = 2,
+    ShootModeCache = 3,
+    ShootModeMax,
 
 }ShootMode;
 
 typedef enum TriggerMode {
-    Null = 0,
-    Press = 1,
-    Commit = 2,
-    Max,
+    TriggerModeNull = 0,
+    TriggerModePress = 1,
+    TriggerModeCommit = 2,
+    TriggerModeMax,
 }TriggerMode;
 
 // Not the same as the definition in DSHOT_RMT_NEO!
@@ -47,16 +47,55 @@ typedef enum DshotMode
 
 ////////////////////////////////////////////////
 
-typedef struct DigitalInputSettings {
+class DigitalInputSettings {
+
+    public:
+
     int16_t pin = -1;
     bool pullup;
     bool normally_closed = false;
     size_t debounce_time = 0;
-} DigitalInputSettings;
-typedef struct DigitalOutputSettings {
+
+    void unpack(JsonObject pin_settings) {
+        pin = pin_settings["num"];
+        normally_closed = pin_settings["nc"];
+        pullup = pin_settings["pullup"];
+        debounce_time = pin_settings["debounce_time"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument settings;
+        settings["num"] = pin;
+        settings["nc"] = normally_closed;
+        settings["pullup"] = pullup;
+        settings["debounce_time"] = debounce_time;
+        return settings;
+    }
+
+};
+
+
+
+class DigitalOutputSettings {
+    
+    public:
+
     int16_t pin = -1;
     bool on_high = false;
-} DigitalOutputSettings;
+
+    void unpack(JsonObject pin_settings) {
+        pin = pin_settings["num"];
+        on_high = pin_settings["on_high"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument settings;
+        settings["num"] = pin;
+        settings["on_high"] = on_high;
+        return settings;
+    }
+
+};
 
 ////////////////////////////////////////////////
 
@@ -77,6 +116,10 @@ typedef struct OledUserInterfaceSettings {
     int16_t i2c_scl_pin = -1;
     size_t display_width = 0;
     size_t display_height = 0;
+    int16_t preset_a_index = -1;
+    int16_t preset_b_index = -1;
+    int16_t preset_c_index = -1;
+
 } OledUserInterfaceSettings;
 
 typedef struct VoltmeterSettings {
@@ -128,8 +171,8 @@ typedef struct HandleSettings {
 typedef struct PresetSettings {
 
     string name = "";
-    TriggerMode trigger_mode = TriggerMode::Null;
-    ShootMode shoot_mode = ShootMode::Null;
+    TriggerMode trigger_mode = TriggerMode::TriggerModeNull;
+    ShootMode shoot_mode = ShootMode::ShootModeNull;
     int burst_count = 0;
     int cache_delay_ms = 0;
     int push_rate_pct = 0;
@@ -147,6 +190,7 @@ class Settings {
     public:
 
     Settings(const char* directory);
+    ~Settings();
 
     //deserialize json and populate struct
     bool load();
@@ -180,12 +224,12 @@ class Settings {
     FlywheelSettings flywheel_settings = {};
     HandleSettings handle_settings = {};
     vector<PresetSettings> preset_list = {};
-    
+
 
 
 
     //takes the loaded settings json and populates the above field with it
-    void unpack_json(JsonDocument settings_json);
+    void unpack_json(JsonDocument& settings_json);
 
     //takes the current settings and creates a json document from it
     JsonDocument pack_json();
