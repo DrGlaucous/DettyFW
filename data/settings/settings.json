@@ -1,13 +1,9 @@
 {
-
-    //typically loaded one time on startup
     "constants": {
-
         "debug": {
             "enabled":true,
             "baud_rate":115200
         },
-    
         "oled_user_interface":{
             "pins": {
                 "i2c": {
@@ -50,8 +46,7 @@
             },
             "display_width": 128,
             "display_height": 64
-        },
-    
+        },  
         "voltmeter": {
             "voltmeter_read_pin": {
                 "num": 34 
@@ -65,7 +60,6 @@
             "batt_empty_charge": 12.0
     
         },
-    
         "ir_detector": {
             "pins": {
                 "ir_reciever_power": {
@@ -91,7 +85,6 @@
             "adc_rising_threshhold": 200,
             "dart_length_mm": 36
         },
-    
         "pusher": {
             "pins": {
                 "fet": {
@@ -103,7 +96,6 @@
             "min_retract_time_ms": 25,
             "max_extend_time_ms": 200
         },
-    
         "flywheels": {
             "pins": {
                 "motor_l_pin": 18,
@@ -116,7 +108,6 @@
             "brushless_motor_kv": 2300,
             "average_battery_voltage": 15.0
         },
-    
         "handle": {
             "shoot_trigger": {
                 "num": 13,
@@ -132,10 +123,7 @@
             }
     
         }
-
     },
-
-    //refreshed each time the setting is needed
     "variables": {
         "presets": [
             {
@@ -160,11 +148,5 @@
         "preset_a_index": 0,
         "preset_b_index": 0,
         "preset_c_index": 1
-
     }
-
-
-
-
-
 }

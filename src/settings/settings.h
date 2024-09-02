@@ -20,18 +20,18 @@ use of enums must always use the qualifier: enum::qualifier
 */
 
 typedef enum ShootMode {
-    Null = -1,
-    FullAuto = 0,
-    SelectFire = 1,
-    Cache = 2,
+    Null = 0,
+    FullAuto = 1,
+    SelectFire = 2,
+    Cache = 3,
     Max,
 
 }ShootMode;
 
 typedef enum TriggerMode {
-    Null = -1,
-    Press = 0,
-    Commit = 1,
+    Null = 0,
+    Press = 1,
+    Commit = 2,
     Max,
 }TriggerMode;
 
@@ -49,6 +49,7 @@ typedef enum DshotMode
 
 typedef struct DigitalInputSettings {
     int16_t pin = -1;
+    bool pullup;
     bool normally_closed = false;
     size_t debounce_time = 0;
 } DigitalInputSettings;
@@ -191,8 +192,12 @@ class Settings {
 
 
     //takes the "pin" object and converts it into a digital i/o pin
-    DigitalInputSettings unpack_di_settings(JsonObject& pin_settings);
-    DigitalOutputSettings unpack_do_settings(JsonObject& pin_settings);
+    DigitalInputSettings unpack_di_settings(JsonObject pin_settings);
+    DigitalOutputSettings unpack_do_settings(JsonObject pin_settings);
+
+    //takes the digital i/o pin and packs it into a json object
+    JsonDocument pack_di_settings(DigitalInputSettings pin_settings);
+    JsonDocument pack_do_settings(DigitalOutputSettings pin_settings);
 
 
 
