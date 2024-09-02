@@ -56,11 +56,11 @@ class DigitalInputSettings {
     bool normally_closed = false;
     size_t debounce_time = 0;
 
-    void unpack(JsonObject pin_settings) {
-        pin = pin_settings["num"];
-        normally_closed = pin_settings["nc"];
-        pullup = pin_settings["pullup"];
-        debounce_time = pin_settings["debounce_time"];
+    void unpack(JsonObject settings) {
+        pin = settings["num"];
+        normally_closed = settings["nc"];
+        pullup = settings["pullup"];
+        debounce_time = settings["debounce_time"];
     }
 
     JsonDocument pack() {
@@ -83,9 +83,9 @@ class DigitalOutputSettings {
     int16_t pin = -1;
     bool on_high = false;
 
-    void unpack(JsonObject pin_settings) {
-        pin = pin_settings["num"];
-        on_high = pin_settings["on_high"];
+    void unpack(JsonObject settings) {
+        pin = settings["num"];
+        on_high = settings["on_high"];
     }
 
     JsonDocument pack() {
@@ -99,12 +99,30 @@ class DigitalOutputSettings {
 
 ////////////////////////////////////////////////
 
-typedef struct DebugSettings {
+class DebugSettings {
+
+    public:
+
     bool enabled = false;
     size_t baud_rate = 115200;
-} DebugSettings;
 
-typedef struct OledUserInterfaceSettings {
+    void unpack(JsonObject settings) {
+        enabled = settings["enabled"];
+        baud_rate = settings["baud_rate"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+        obj["enabled"] = enabled;
+        obj["baud_rate"] = baud_rate;
+        return obj;
+    }
+
+};
+
+class OledUserInterfaceSettings {
+    public:
+
     DigitalInputSettings preset_a;
     DigitalInputSettings preset_b;
     DigitalInputSettings preset_c;
@@ -120,9 +138,75 @@ typedef struct OledUserInterfaceSettings {
     int16_t preset_b_index = -1;
     int16_t preset_c_index = -1;
 
-} OledUserInterfaceSettings;
+    void unpack(JsonObject settings) {
 
-typedef struct VoltmeterSettings {
+        JsonObject pins = settings["pins"];
+
+        //get inputs
+        JsonObject pin = pins["preset_a"];
+        preset_a.unpack(pin);
+        pin = pins["preset_b"];
+        preset_b.unpack(pin);
+        pin = pins["preset_c"];
+        preset_c.unpack(pin);
+        pin = pins["encoder_button"];
+        encoder_button.unpack(pin);
+
+
+        //get output
+        pin = pins["buzzer"];
+        buzzer.unpack(pin);
+
+        //other I/O
+        pin = pins["i2c"];
+        i2c_sda_pin = pin["sda"];
+        i2c_scl_pin = pin["scl"];
+
+        pin = pins["encoder"];
+        encoder_a_pin = pin["num_a"];
+        encoder_b_pin = pin["num_b"];
+
+        preset_a_index = settings["preset_a_index"];
+        preset_b_index = settings["preset_b_index"];
+        preset_c_index = settings["preset_c_index"];
+
+        display_width = settings["display_width"];
+        display_height = settings["display_height"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+        JsonDocument pins;
+
+        pins["i2c"]["sda"] = i2c_sda_pin;
+        pins["i2c"]["scl"] = i2c_scl_pin;
+        
+        pins["preset_a"] = preset_a.pack();
+        pins["preset_b"] = preset_b.pack();
+        pins["preset_c"] = preset_c.pack();
+        pins["encoder_button"] = encoder_button.pack();
+
+        pins["encoder"]["num_a"] = encoder_a_pin;
+        pins["encoder"]["num_b"] = encoder_b_pin;
+        pins["buzzer"] = buzzer.pack();
+
+        obj["preset_a_index"] = preset_a_index;
+        obj["preset_b_index"] = preset_b_index;
+        obj["preset_c_index"] = preset_c_index;
+
+        obj["display_width"] = display_width;
+        obj["display_height"] = display_height;
+
+        obj["pins"] = pins;
+        return obj;
+    }
+
+};
+
+class VoltmeterSettings {
+
+    public:
+
     int16_t voltmeter_read_pin = -1;
     uint16_t adc_value_ref_1 = 0;
     float voltage_ref_1 = 0.0;
@@ -131,9 +215,38 @@ typedef struct VoltmeterSettings {
     float batt_full_charge = 0.0;
     float batt_empty_charge = 0.0;
 
-} VoltmeterSettings;
+    void unpack(JsonObject settings) {
+        voltmeter_read_pin = settings["voltmeter_read_pin"]["num"];
+        adc_value_ref_1 = settings["adc_value_ref_1"];
+        voltage_ref_1 = settings["voltage_ref_1"];
+        adc_value_ref_2 = settings["adc_value_ref_2"];
+        voltage_ref_2 = settings["voltage_ref_2"];
 
-typedef struct IRDetectorSettings {
+        batt_full_charge = settings["batt_full_charge"];
+        batt_empty_charge = settings["batt_empty_charge"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+
+        obj["voltmeter_read_pin"]["num"] = voltmeter_read_pin;
+        obj["adc_value_ref_1"] = adc_value_ref_1;
+        obj["voltage_ref_1"] = voltage_ref_1;
+        obj["adc_value_ref_2"] = adc_value_ref_2;
+        obj["voltage_ref_2"] = voltage_ref_2;
+
+        obj["batt_full_charge"] = batt_full_charge;
+        obj["batt_empty_charge"] = batt_empty_charge;
+
+        return obj;
+    }
+
+};
+
+class IRDetectorSettings {
+
+    public:
+
     DigitalInputSettings mag_release;
     DigitalOutputSettings ir_reciever_power;
     DigitalOutputSettings ir_emitter_power;
@@ -142,16 +255,78 @@ typedef struct IRDetectorSettings {
     uint16_t adc_rising_threshhold = 0;
     float dart_length_mm = 0.0;
 
-} IRDetectorSettings;
+    void unpack(JsonObject settings) {
+        JsonObject pins = settings["pins"];
 
-typedef struct PusherSettings {
+        //I/O
+        JsonObject pin = pins["ir_reciever_power"];
+        ir_reciever_power.unpack(pin); // = unpack_do_settings(pin);
+        pin = pins["ir_emitter_power"];
+        ir_emitter_power.unpack(pin); // = unpack_do_settings(pin);
+        pin = pins["ir_reciever_read_pin"];
+        ir_reciever_read_pin = pin["num"];
+        pin = pins["mag_release"];
+        mag_release.unpack(pin); // = unpack_di_settings(pin);
+
+        adc_falling_threshhold = settings["adc_falling_threshhold"];
+        adc_rising_threshhold = settings["adc_rising_threshhold"];
+        dart_length_mm = settings["dart_length_mm"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+        JsonDocument pins;
+
+        pins["ir_reciever_power"] = ir_reciever_power.pack();
+        pins["ir_emitter_power"] = ir_emitter_power.pack();
+        pins["ir_reciever_read_pin"]["num"] = ir_reciever_read_pin;
+        pins["mag_release"] = mag_release.pack();
+        
+        obj["adc_falling_threshhold"] = adc_falling_threshhold;
+        obj["adc_rising_threshhold"] = adc_rising_threshhold;
+        obj["dart_length_mm"] = dart_length_mm;
+
+        obj["pins"] = pins;
+        return obj;
+    }
+
+};
+
+class PusherSettings {
+
+    public:
+
     DigitalOutputSettings fet;
     size_t min_extend_time_ms = 0;
     size_t min_retract_time_ms = 0;
     size_t max_extend_time_ms = 0;
-} PusherSettings;
 
-typedef struct FlywheelSettings {
+    void unpack(JsonObject settings) {
+        JsonObject pin = settings["pins"]["fet"];
+        fet.unpack(pin); // = unpack_do_settings(pin);
+
+        min_extend_time_ms = settings["min_extend_time_ms"];
+        min_retract_time_ms = settings["min_retract_time_ms"];
+        max_extend_time_ms = settings["max_extend_time_ms"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+
+        obj["pins"]["fet"] = fet.pack();
+        obj["min_extend_time_ms"] = min_extend_time_ms;
+        obj["min_retract_time_ms"] = min_retract_time_ms;
+        obj["max_extend_time_ms"] = max_extend_time_ms;
+        
+        return obj;
+    }
+
+};
+
+class FlywheelSettings {
+
+    public:
+
     int16_t motor_l_pin = -1;
     int16_t motor_r_pin = -1;
     DshotMode dshot_mode = DshotMode::DshotOff;
@@ -161,14 +336,65 @@ typedef struct FlywheelSettings {
     size_t brushless_motor_kv = 0;
     float average_battery_voltage = 0.0;
 
-} FLywheelSettings;
+    void unpack(JsonObject settings) {
+        motor_l_pin = settings["pins"]["motor_l_pin"];
+        motor_r_pin = settings["pins"]["motor_r_pin"];
 
-typedef struct HandleSettings {
+        //enumify dshot mode mode
+        dshot_mode = (DshotMode)settings["trigger_mode"];
+
+        downthrottle_time_ms = settings["downthrottle_time_ms"];
+        idle_rpm = settings["idle_rpm"];
+        idle_time_ms = settings["idle_time_ms"];
+        brushless_motor_kv = settings["brushless_motor_kv"];
+        average_battery_voltage = settings["average_battery_voltage"];
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+
+        obj["pins"]["motor_l_pin"] = motor_l_pin;
+        obj["pins"]["motor_r_pin"] = motor_r_pin;
+        obj["dshot_mode"] = dshot_mode;
+        obj["downthrottle_time_ms"] = downthrottle_time_ms;
+        obj["idle_rpm"] = idle_rpm;
+        obj["idle_time_ms"] = idle_time_ms;
+        obj["brushless_motor_kv"] = brushless_motor_kv;
+        obj["average_battery_voltage"] = average_battery_voltage;
+
+        return obj;
+    }
+
+};
+
+class HandleSettings {
+
+    public:
+
     DigitalInputSettings shoot_trigger;
     DigitalInputSettings rev_trigger;
-} HandleSettings;
 
-typedef struct PresetSettings {
+    void unpack(JsonObject settings) {
+        JsonObject pin = settings["shoot_trigger"];
+        shoot_trigger.unpack(pin); // = unpack_di_settings(pin);
+        pin = settings["rev_trigger"];
+        rev_trigger.unpack(pin); // = unpack_di_settings(pin);
+    }
+
+    JsonDocument pack() {
+        JsonDocument obj;
+
+        obj["shoot_trigger"] = shoot_trigger.pack();//pack_di_settings(handle_settings.shoot_trigger);
+        obj["rev_trigger"] = rev_trigger.pack();//pack_di_settings(handle_settings.rev_trigger);
+
+        return obj;
+    }
+
+};
+
+class PresetSettings {
+
+    public:
 
     string name = "";
     TriggerMode trigger_mode = TriggerMode::TriggerModeNull;
@@ -181,7 +407,38 @@ typedef struct PresetSettings {
     //the index in the json that this preset is (this value is NOT stored in the json!)
     int index = 0;
 
-} PresetSettings;
+    void unpack(JsonObject settings) {
+        //parse the preset
+        name = string((const char*)settings["name"]);
+
+        //enumify trigger mode
+        trigger_mode = (TriggerMode)settings["trigger_mode"];
+        //enumify shoot mode
+        shoot_mode = (ShootMode)settings["shoot_mode"];
+
+        burst_count = settings["burst_count"];
+        cache_delay_ms = settings["cache_delay_ms"];
+        push_rate_pct = settings["push_rate_pct"];
+        flywheel_rpm = settings["flywheel_rpm"];
+
+    }
+
+    JsonDocument pack() {
+        JsonDocument preset_settings;
+        preset_settings["name"] = name.c_str();
+
+        //de-enumify mode typedefs
+        preset_settings["trigger_mode"] = (size_t)trigger_mode;
+        preset_settings["shoot_mode"] = (size_t)shoot_mode;
+        preset_settings["burst_count"] = burst_count;
+        preset_settings["cache_delay_ms"] = cache_delay_ms;
+        preset_settings["push_rate_pct"] = push_rate_pct;
+        preset_settings["flywheel_rpm"] = flywheel_rpm;
+
+        return preset_settings;
+    }
+
+};
 
 
 class Settings {
