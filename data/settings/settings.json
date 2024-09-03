@@ -42,7 +42,6 @@
                     "num": 13,
                     "on_high":true
                 }
-    
             },
             "preset_a_index": 0,
             "preset_b_index": 0,
@@ -58,10 +57,8 @@
             "voltage_ref_1": 0,
             "adc_value_ref_2": 800,
             "voltage_ref_2": 0.772,
-    
             "batt_full_charge": 16.0,
             "batt_empty_charge": 12.0
-    
         },
         "ir_detector": {
             "pins": {
@@ -82,7 +79,6 @@
                     "pullup":true,
                     "debounce_time": 10
                 }
-    
             },
             "adc_falling_threshhold": 100,
             "adc_rising_threshhold": 200,
