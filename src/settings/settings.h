@@ -452,6 +452,17 @@ class Settings {
     //serialize and save json to directory
     bool save();
 
+
+    //get immutable refrences to internal settings:
+    inline const DebugSettings& get_debug_settings_ref() {
+        return debug_settings;
+    };
+    inline const FlywheelSettings& get_flywheel_settings_ref() {
+        return flywheel_settings;
+    };
+
+
+
     //sets preset a,b,or c to refer to config index "index" in the array
     bool set_preset_index(char preset, size_t index);
 

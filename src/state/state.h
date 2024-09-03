@@ -23,15 +23,15 @@ class State {
     Settings settings = Settings(SETTINGS_DIRECTORY);
 
     //create new state and load in settings
-    State() {
-    }
+    State() {}
 
     ~State() {
     }
 
     void init() {
         filesystem::initialize();
-        //settings = Settings(SETTINGS_DIRECTORY);
+        
+        //settings initialized in constructor
         settings.load();
         
     }
