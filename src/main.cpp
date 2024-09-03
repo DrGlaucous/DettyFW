@@ -11,10 +11,8 @@ void setup() {
 
     filesystem::initialize();
 
-    //filesystem::readFile2(SETTINGS_DIRECTORY);
-
     set_of_settings.load();
-    set_of_settings.save();
+    //set_of_settings.save();
 
 }
 

@@ -9,9 +9,6 @@
 using std::string;
 using std::vector;
 
-
-#define SETTINGS_DIRECTORY "/settings/settings.json"
-
 //convention:
 /*
 variables use snake_case names
@@ -486,21 +483,10 @@ class Settings {
 
 
     //takes the loaded settings json and populates the above field with it
-    void unpack_json(JsonDocument& settings_json);
+    void unpack_json(JsonObject settings_json);
 
     //takes the current settings and creates a json document from it
     JsonDocument pack_json();
-
-
-    //takes the "pin" object and converts it into a digital i/o pin
-    DigitalInputSettings unpack_di_settings(JsonObject pin_settings);
-    DigitalOutputSettings unpack_do_settings(JsonObject pin_settings);
-
-    //takes the digital i/o pin and packs it into a json object
-    JsonDocument pack_di_settings(DigitalInputSettings pin_settings);
-    JsonDocument pack_do_settings(DigitalOutputSettings pin_settings);
-
-
 
 
 };

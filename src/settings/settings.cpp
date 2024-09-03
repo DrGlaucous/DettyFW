@@ -19,7 +19,7 @@ Settings::Settings(const char* directory) {
     this->directory = string(directory);
 }
 Settings::~Settings() {
-
+    //no hard-allocated memory (no need to free or delete anything here)
 }
 
 
@@ -36,8 +36,9 @@ bool Settings::load() {
     }
     JsonDocument settings_json;
 
-    DeserializationError err = deserializeJson(settings_json, filebuf, filelen);
+    DeserializationError err = deserializeJson(settings_json, filebuf);
 
+    //TEST
     if(err.code()) {
         auto code = err.code();
         size_t apple = code + 6;
@@ -45,20 +46,22 @@ bool Settings::load() {
         Serial.printf("parse error: %d\n", code);
     }
 
-    serializeJsonPretty(settings_json, Serial);
-
+    //TEST
+    //serializeJsonPretty(settings_json, Serial);
+    //Serial.print((char*)filebuf);
 
     //finished decoding, free filebuffer
     free(filebuf);
 
     //parse out settings
-    unpack_json(settings_json);
+    unpack_json(settings_json.to<JsonObject>());
 
-    PresetSettings a = preset_list[0];
-    PresetSettings b = preset_list[1];
 
-    Serial.printf("\nsize: %d\n", preset_list.size());
-    Serial.printf("name: %s\n", a.name.c_str());
+    //TEST
+    // PresetSettings a = preset_list[0];
+    // PresetSettings b = preset_list[1];
+    // Serial.printf("\nsize: %d\n", preset_list.size());
+    // Serial.printf("name: %s\n", a.name.c_str());
 
 
     //todo: make this meaningful
@@ -66,6 +69,9 @@ bool Settings::load() {
 
 }
 bool Settings::save() {
+
+    //TEST: alter a value
+    debug_settings.baud_rate += 10;
 
     //pack settings
     JsonDocument settings_json = pack_json();
@@ -76,7 +82,7 @@ bool Settings::save() {
     //write to buffer
     serializeJsonPretty(settings_json, json_buffer, json_size);
 
-    //filesystem::writeFile(directory.c_str(), json_buffer, json_size);
+    filesystem::writeFile(directory.c_str(), json_buffer, json_size);
 
     //finished writing, free filebuffer
     free(json_buffer);
@@ -87,7 +93,7 @@ bool Settings::save() {
 }
 
 //reads the json at index and returns 
-void Settings::unpack_json(JsonDocument& settings_json) {
+void Settings::unpack_json(JsonObject settings_json) {
 
     //unpack other
     {
@@ -170,58 +176,13 @@ JsonDocument Settings::pack_json() {
         settings["variables"] = obj;
     }
 
-    Serial.printf("\nRe-package:\n");
-
-
+    // Serial.printf("\nRe-package:\n");
     // JsonArray data = settings["arp"].to<JsonArray>();
     // data.add(48.75608);
     // data.add(2.302038);
-
-    serializeJsonPretty(settings, Serial);
+    // serializeJsonPretty(settings, Serial);
 
     return settings;
 
 }
-
-
-
-//private helpers:
-/*
-DigitalInputSettings Settings::unpack_di_settings(JsonObject pin_settings) {
-    DigitalInputSettings settings;
-    settings.pin = pin_settings["num"];
-    settings.normally_closed = pin_settings["nc"];
-    settings.pullup = pin_settings["pullup"];
-    settings.debounce_time = pin_settings["debounce_time"];
-    return settings;
-}
-
-DigitalOutputSettings Settings::unpack_do_settings(JsonObject pin_settings) {
-    DigitalOutputSettings settings;
-    settings.pin = pin_settings["num"];
-    settings.on_high = pin_settings["on_high"];
-    return settings;
-}
-
-JsonDocument Settings::pack_di_settings(DigitalInputSettings pin_settings) {
-    JsonDocument settings;
-
-    settings["num"] = pin_settings.pin;
-    settings["nc"] = pin_settings.normally_closed;
-    settings["pullup"] = pin_settings.pullup;
-    settings["debounce_time"] = pin_settings.debounce_time;
-
-    return settings;
-}
-
-JsonDocument Settings::pack_do_settings(DigitalOutputSettings pin_settings) {
-    JsonDocument settings;
-
-    settings["num"] = pin_settings.pin;
-    settings["on_high"] = pin_settings.on_high;
-
-    return settings;
-}
-
-*/
 
