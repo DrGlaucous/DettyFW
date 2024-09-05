@@ -141,12 +141,35 @@ class Flywheels {
 
     private:
 
+	//if true, tick will return immediately
     bool disabled_mode = true;
 
+	uint32_t motor_tx_delay_micros = 0;
+
     DShotRMT* motor_l;
-    DShotRMT* motor_r;
+	PIDController motor_l_controller = PIDController(
+		DSHOT_THROTTLE_MIN, //start output
+		DSHOT_THROTTLE_MAX, //min output lim
+		DSHOT_THROTTLE_MIN, //max output lim
+		0.0012, //p
+		0.00015, //i
+		0.002 //d
+	);
 
+	DShotRMT* motor_r;
+	PIDController motor_r_controller = PIDController(
+		DSHOT_THROTTLE_MIN, //start output
+		DSHOT_THROTTLE_MAX, //min output lim
+		DSHOT_THROTTLE_MIN, //max output lim
+		0.0012, //p
+		0.00015, //i
+		0.002 //d
+	);
 
+	//timestamp when we sent the last dshot packet
+	uint32_t last_micros_sent = 0;
+	//timestamp when we got the last dshot packet
+	uint32_t last_micros_got = 0;
 
 };
 

@@ -15,7 +15,8 @@ class State {
 
 
     uint32_t flywheel_target_rpm;
-    uint32_t flywheel_current_rpm;
+    uint32_t flywheel_l_current_rpm;
+    uint32_t flywheel_r_current_rpm;
 
     uint32_t push_count;
 
