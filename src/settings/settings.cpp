@@ -186,3 +186,31 @@ JsonDocument Settings::pack_json() {
 
 }
 
+
+bool Settings::set_current_preset(size_t index) {
+    //oob protection
+    if(index >= preset_list.size()) {
+        return false;
+    }
+    curr_preset_index = index;
+    return true;
+}
+
+const PresetSettings* Settings::get_current_preset_ref() {
+    if(curr_preset_index < preset_list.size())
+        return &preset_list[curr_preset_index];
+}
+PresetSettings* Settings::get_current_preset_mut() {
+    if(curr_preset_index < preset_list.size())
+        return &preset_list[curr_preset_index];
+}
+
+
+
+
+
+
+
+
+
+

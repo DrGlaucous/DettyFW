@@ -326,20 +326,25 @@ class FlywheelSettings {
 
     int16_t motor_l_pin = -1;
     int16_t motor_r_pin = -1;
+    int16_t motor_l_pole_ct = 0;
+    int16_t motor_r_pole_ct = 0;
     DshotMode dshot_mode = DshotMode::DshotOff;
     size_t downthrottle_time_ms = 0;
     size_t idle_rpm = 0;
     size_t idle_time_ms = 0;
+
+    //todo: replace this with absolute max motor speed (expected)
     size_t brushless_motor_kv = 0;
     float average_battery_voltage = 0.0;
 
     void unpack(JsonObject settings) {
         motor_l_pin = settings["pins"]["motor_l_pin"];
         motor_r_pin = settings["pins"]["motor_r_pin"];
+        motor_l_pole_ct = settings["pins"]["motor_l_pole_ct"];
+        motor_r_pole_ct = settings["pins"]["motor_r_pole_ct"];
 
         //enumify dshot mode mode
         dshot_mode = (DshotMode)settings["trigger_mode"];
-
         downthrottle_time_ms = settings["downthrottle_time_ms"];
         idle_rpm = settings["idle_rpm"];
         idle_time_ms = settings["idle_time_ms"];
@@ -352,6 +357,9 @@ class FlywheelSettings {
 
         obj["pins"]["motor_l_pin"] = motor_l_pin;
         obj["pins"]["motor_r_pin"] = motor_r_pin;
+        obj["pins"]["motor_l_pole_ct"] = motor_l_pole_ct;
+        obj["pins"]["motor_r_pole_ct"] = motor_r_pole_ct;
+
         obj["dshot_mode"] = dshot_mode;
         obj["downthrottle_time_ms"] = downthrottle_time_ms;
         obj["idle_rpm"] = idle_rpm;
@@ -470,8 +478,11 @@ class Settings {
     bool set_current_preset(size_t index);
 
     //get refrence to the "current" preset
-    PresetSettings& get_current_preset();
-
+    inline const PresetSettings* get_current_preset_ref();
+    //for editing
+    inline PresetSettings* get_current_preset_mut();
+    
+    
     private:
 
     //where in the filesystem the settings are loaded from
@@ -479,6 +490,7 @@ class Settings {
     //set to "true" if any settings other than the stuff in "variables" has changed
     bool needs_power_cycle = false;
 
+    size_t curr_preset_index;
 
     //settings from JSON file
     DebugSettings debug_settings = {};

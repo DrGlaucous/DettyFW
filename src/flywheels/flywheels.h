@@ -142,7 +142,7 @@ class Flywheels {
     private:
 
 	//if true, tick will return immediately
-    bool disabled_mode = true;
+    bool dummy_mode = true;
 
 	uint32_t motor_tx_delay_micros = 0;
 
@@ -168,9 +168,13 @@ class Flywheels {
 	);
 	uint32_t r_last_micros_got = 0;
 
-
 	//timestamp when we sent the last dshot packet (shared)
 	uint32_t last_micros_sent = 0;
+
+	// handle downthrottling in the connectome
+	// uint8_t state_action_no = 0; //used to perform sequential actions on state change
+	// uint32_t l_downthrottle_step_size = 0;
+	// uint32_t r_downthrottle_step_size = 0;
 
 };
 

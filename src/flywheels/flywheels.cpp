@@ -35,10 +35,10 @@ Flywheels::Flywheels(State& state) {
     if(mode == DSHOT_OFF
     || flywheel_settings.motor_l_pin == -1
     || flywheel_settings.motor_r_pin == -1) {
-        disabled_mode = true;
+        dummy_mode = true;
         return;
     }
-    disabled_mode = false;
+    dummy_mode = false;
 
     motor_l = new DShotRMT(flywheel_settings.motor_l_pin);
     motor_r = new DShotRMT(flywheel_settings.motor_r_pin);
@@ -60,12 +60,18 @@ Flywheels::Flywheels(State& state) {
 };
 
 Flywheels::~Flywheels() {
+    //note: these are probably broken
     delete(motor_l);
     delete(motor_r);
 }
 
 void Flywheels::tick(State& state) {
 
+    //do not run if incorrectly initialized
+    if(dummy_mode)
+        return;
+
+    //should I use state or micros() for this?
     auto abs_micros = state.get_abs_micros();
 
     uint16_t motor_l_raw_trottle = 0;
@@ -79,6 +85,12 @@ void Flywheels::tick(State& state) {
         dshot_get_packet_exit_mode_t l_response = motor_l->get_dshot_packet(&l_rpm);
         dshot_get_packet_exit_mode_t r_response = motor_r->get_dshot_packet(&r_rpm);
 
+        // //raw disable
+        // if(!state.flywheel_rpm_active) {
+        //     motor_l_raw_trottle = 0;
+        //     motor_r_raw_trottle = 0;
+        // }
+
         //update PID if response is good
         if(l_response == DECODE_SUCCESS) {
             motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, abs_micros - l_last_micros_got);
@@ -86,14 +98,18 @@ void Flywheels::tick(State& state) {
             l_last_micros_got = abs_micros;
         }
         if(r_response == DECODE_SUCCESS) {
-            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, abs_micros - r_last_micros_got);
+            motor_r_raw_trottle = motor_r_controller.tick(state.flywheel_target_rpm, r_rpm, abs_micros - r_last_micros_got);
             state.flywheel_r_current_rpm = r_rpm;
             r_last_micros_got = abs_micros;
         }
+
+
+
     }
 
-    //only send new packets out on this fixed interval (set in constructor)
-    if (abs_micros > last_micros_sent + motor_tx_delay_micros) {
+    //only send new packets out on this fixed interval (interval set in constructor)
+    //use subtraction here to deal with overflows
+    if (abs_micros - motor_tx_delay_micros > last_micros_sent) {
         motor_l->send_dshot_value(motor_l_raw_trottle);
         motor_r->send_dshot_value(motor_r_raw_trottle);
         last_micros_sent = abs_micros;

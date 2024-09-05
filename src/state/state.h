@@ -13,12 +13,16 @@ class State {
 
     public:
 
-
+    //flywheel control variables
     uint32_t flywheel_target_rpm;
+    bool flywheel_rpm_active; //true if we want to spin up, false if we're spinning down
+    //telem values
     uint32_t flywheel_l_current_rpm;
     uint32_t flywheel_r_current_rpm;
 
+    //solenoid control variables
     uint32_t push_count;
+    uint8_t push_rate_pct;
 
 
     Settings settings = Settings(SETTINGS_DIRECTORY);
