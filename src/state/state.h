@@ -50,6 +50,13 @@ class State {
         return tick_time / 1000;
     }
 
+    inline uint32_t get_abs_micros() {
+        return last_micros;
+    }
+    inline uint32_t get_abs_millis() {
+        return last_micros / 1000;
+    }
+
 
 
     private:

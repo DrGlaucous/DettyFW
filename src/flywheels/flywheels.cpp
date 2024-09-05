@@ -66,7 +66,7 @@ Flywheels::~Flywheels() {
 
 void Flywheels::tick(State& state) {
 
-    auto delta_t = state.get_delta_micros();
+    auto abs_micros = state.get_abs_micros();
 
     uint16_t motor_l_raw_trottle = 0;
     uint16_t motor_r_raw_trottle = 0;
@@ -81,19 +81,22 @@ void Flywheels::tick(State& state) {
 
         //update PID if response is good
         if(l_response == DECODE_SUCCESS) {
-            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, delta_t);
+            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, abs_micros - l_last_micros_got);
             state.flywheel_l_current_rpm = l_rpm; //report back values to state
+            l_last_micros_got = abs_micros;
         }
         if(r_response == DECODE_SUCCESS) {
-            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, delta_t);
+            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, abs_micros - r_last_micros_got);
             state.flywheel_r_current_rpm = r_rpm;
+            r_last_micros_got = abs_micros;
         }
     }
 
     //only send new packets out on this fixed interval (set in constructor)
-    if (delta_t > motor_tx_delay_micros) {
+    if (abs_micros > last_micros_sent + motor_tx_delay_micros) {
         motor_l->send_dshot_value(motor_l_raw_trottle);
         motor_r->send_dshot_value(motor_r_raw_trottle);
+        last_micros_sent = abs_micros;
     }
 
 }
