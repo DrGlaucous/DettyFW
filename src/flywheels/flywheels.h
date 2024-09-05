@@ -155,6 +155,7 @@ class Flywheels {
 		0.00015, //i
 		0.002 //d
 	);
+	uint32_t l_last_micros_got = 0;
 
 	DShotRMT* motor_r;
 	PIDController motor_r_controller = PIDController(
@@ -165,11 +166,11 @@ class Flywheels {
 		0.00015, //i
 		0.002 //d
 	);
+	uint32_t r_last_micros_got = 0;
 
-	//timestamp when we sent the last dshot packet
+
+	//timestamp when we sent the last dshot packet (shared)
 	uint32_t last_micros_sent = 0;
-	//timestamp when we got the last dshot packet
-	uint32_t last_micros_got = 0;
 
 };
 
