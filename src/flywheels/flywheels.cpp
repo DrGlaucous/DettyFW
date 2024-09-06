@@ -57,6 +57,11 @@ Flywheels::Flywheels(State& state) {
         flywheel_settings.motor_r_pole_ct == 0 ? 1 : flywheel_settings.motor_r_pole_ct
     );
 
+    //set these to start wide open as soon as the PID starts up (function limits to max output limit)
+    motor_l_controller.set_output_offset(9999);
+    motor_r_controller.set_output_offset(9999);
+
+
 };
 
 Flywheels::~Flywheels() {
@@ -79,30 +84,33 @@ void Flywheels::tick(State& state) {
 
     //check every tick for updated rx values and update PID as often as possible
     {
-        uint32_t l_rpm;
-        uint32_t r_rpm;
+        //uint32_t l_rpm;
+        //uint32_t r_rpm;
 
-        dshot_get_packet_exit_mode_t l_response = motor_l->get_dshot_packet(&l_rpm);
-        dshot_get_packet_exit_mode_t r_response = motor_r->get_dshot_packet(&r_rpm);
+        //write directly to the state flywheel speed (values are unchanged if no good packet is gotten)
+        dshot_get_packet_exit_mode_t l_response = motor_l->get_dshot_packet(&state.flywheel_l_current_rpm);
+        dshot_get_packet_exit_mode_t r_response = motor_r->get_dshot_packet(&state.flywheel_r_current_rpm);
 
-        // //raw disable
-        // if(!state.flywheel_rpm_active) {
-        //     motor_l_raw_trottle = 0;
-        //     motor_r_raw_trottle = 0;
-        // }
+        //raw disable (don't use PID, set motor output directly to 0)
+        if(!state.flywheel_rpm_active) {
+            motor_l_raw_trottle = 0;
+            motor_r_raw_trottle = 0;
 
-        //update PID if response is good
-        if(l_response == DECODE_SUCCESS) {
-            motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, l_rpm, abs_micros - l_last_micros_got);
-            state.flywheel_l_current_rpm = l_rpm; //report back values to state
-            l_last_micros_got = abs_micros;
+            //put PID controllers in reset state
+            motor_l_controller.reset();
+            motor_r_controller.reset();
+
+        } else {
+            //update PID if response is good
+            if(l_response == DECODE_SUCCESS) {
+                motor_l_raw_trottle = motor_l_controller.tick(state.flywheel_target_rpm, state.flywheel_l_current_rpm, abs_micros - l_last_micros_got);
+                l_last_micros_got = abs_micros;
+            }
+            if(r_response == DECODE_SUCCESS) {
+                motor_r_raw_trottle = motor_r_controller.tick(state.flywheel_target_rpm, state.flywheel_r_current_rpm, abs_micros - r_last_micros_got);
+                r_last_micros_got = abs_micros;
+            }
         }
-        if(r_response == DECODE_SUCCESS) {
-            motor_r_raw_trottle = motor_r_controller.tick(state.flywheel_target_rpm, r_rpm, abs_micros - r_last_micros_got);
-            state.flywheel_r_current_rpm = r_rpm;
-            r_last_micros_got = abs_micros;
-        }
-
 
 
     }
