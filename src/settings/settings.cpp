@@ -17,6 +17,53 @@ using std::string;
 
 Settings::Settings(const char* directory) {
     this->directory = string(directory);
+
+    //load();
+
+    //temp: define some hard-coded settings here so we don't have to worry about the json for now
+    {
+        flywheel_settings.dshot_mode = DshotMode::Dshot600;
+        flywheel_settings.motor_l_pin = 18;
+        flywheel_settings.motor_l_pole_ct = 14;
+
+        flywheel_settings.motor_r_pin = 23;
+        flywheel_settings.motor_r_pole_ct = 14;
+
+        handle_settings.shoot_trigger.pin = 17;
+        handle_settings.shoot_trigger.pullup = true;
+        handle_settings.shoot_trigger.normally_closed = false;
+        handle_settings.shoot_trigger.debounce_time = 5;
+
+        //dual use: mag release pin
+        handle_settings.rev_trigger.pin = 5;
+        handle_settings.rev_trigger.pullup = true;
+        handle_settings.rev_trigger.normally_closed = false;
+        handle_settings.rev_trigger.debounce_time = 5;
+
+        oled_user_interface_settings.preset_a.pin = 27;
+        oled_user_interface_settings.preset_a.pullup = true;
+        oled_user_interface_settings.preset_a.normally_closed = false;
+        oled_user_interface_settings.preset_a.debounce_time = 5;
+
+        oled_user_interface_settings.preset_b.pin = 14;
+        oled_user_interface_settings.preset_b.pullup = true;
+        oled_user_interface_settings.preset_b.normally_closed = false;
+        oled_user_interface_settings.preset_b.debounce_time = 5;
+
+        oled_user_interface_settings.preset_c.pin = 12;
+        oled_user_interface_settings.preset_c.pullup = true;
+        oled_user_interface_settings.preset_c.normally_closed = false;
+        oled_user_interface_settings.preset_c.debounce_time = 5;
+
+        oled_user_interface_settings.encoder_a_pin = 33;
+        oled_user_interface_settings.encoder_b_pin = 25;
+
+        curr_preset_index = 0;
+        auto presets = PresetSettings();
+        presets.flywheel_rpm = 400;
+        preset_list.push_back(std::move(presets));
+
+    }
 }
 Settings::~Settings() {
     //no hard-allocated memory (no need to free or delete anything here)
@@ -24,6 +71,8 @@ Settings::~Settings() {
 
 
 bool Settings::load() {
+
+    return false;
 
     uint8_t *filebuf;
     size_t filelen;
@@ -187,6 +236,11 @@ JsonDocument Settings::pack_json() {
 }
 
 
+//dummy implementation currently
+bool Settings::set_preset_index(char preset, size_t index) {
+    return false;
+}
+
 bool Settings::set_current_preset(size_t index) {
     //oob protection
     if(index >= preset_list.size()) {
@@ -197,12 +251,13 @@ bool Settings::set_current_preset(size_t index) {
 }
 
 const PresetSettings* Settings::get_current_preset_ref() {
-    if(curr_preset_index < preset_list.size())
-        return &preset_list[curr_preset_index];
+    //TODO: overflow protection
+    //if(curr_preset_index < preset_list.size())
+    return &preset_list[curr_preset_index];
 }
 PresetSettings* Settings::get_current_preset_mut() {
-    if(curr_preset_index < preset_list.size())
-        return &preset_list[curr_preset_index];
+    //if(curr_preset_index < preset_list.size())
+    return &preset_list[curr_preset_index];
 }
 
 

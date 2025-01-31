@@ -48,10 +48,18 @@ class DigitalInputSettings {
 
     public:
 
-    int16_t pin = -1;
+    int16_t pin;
     bool pullup;
-    bool normally_closed = false;
-    size_t debounce_time = 0;
+    bool normally_closed;
+    size_t debounce_time;
+
+    DigitalInputSettings():
+    pin(-1),
+    pullup(false),
+    normally_closed(false),
+    debounce_time(0) {
+        
+    }
 
     void unpack(JsonObject settings) {
         pin = settings["num"];
@@ -71,14 +79,18 @@ class DigitalInputSettings {
 
 };
 
-
-
 class DigitalOutputSettings {
     
     public:
 
     int16_t pin = -1;
     bool on_high = false;
+
+    DigitalOutputSettings():
+    pin(-1),
+    on_high(false) {
+        
+    }
 
     void unpack(JsonObject settings) {
         pin = settings["num"];
@@ -462,11 +474,18 @@ class Settings {
 
 
     //get immutable refrences to internal settings:
-    inline const DebugSettings& get_debug_settings_ref() {
+    inline const DebugSettings& get_debug_settings_ref() const {
         return debug_settings;
     };
-    inline const FlywheelSettings& get_flywheel_settings_ref() {
+    inline const FlywheelSettings& get_flywheel_settings_ref() const {
         return flywheel_settings;
+    };
+
+    inline const HandleSettings& get_handle_settings_ref() {
+        return handle_settings;
+    };
+    inline const OledUserInterfaceSettings& get_oled_interface_settings_ref() {
+        return oled_user_interface_settings;
     };
 
 
@@ -478,11 +497,10 @@ class Settings {
     bool set_current_preset(size_t index);
 
     //get refrence to the "current" preset
-    inline const PresetSettings* get_current_preset_ref();
+    const PresetSettings* get_current_preset_ref();
     //for editing
-    inline PresetSettings* get_current_preset_mut();
-    
-    
+    PresetSettings* get_current_preset_mut();
+
     private:
 
     //where in the filesystem the settings are loaded from
@@ -501,9 +519,6 @@ class Settings {
     FlywheelSettings flywheel_settings = {};
     HandleSettings handle_settings = {};
     vector<PresetSettings> preset_list = {};
-
-
-
 
     //takes the loaded settings json and populates the above field with it
     void unpack_json(JsonObject settings_json);
