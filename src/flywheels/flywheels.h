@@ -126,17 +126,16 @@ namespace Flywheels {
 		}
 
 
-		//data retainers
-		float last_pval = 0;
-		float ival = 0;
-
-
 		private:
 
 		//vars
 		float p_const = 0.0;
 		float i_const = 0.0;
 		float d_const = 0.0;
+
+		//data retainers
+		float last_pval = 0;
+		float ival = 0;
 
 		int32_t max_lim = DSHOT_THROTTLE_MAX;
 		int32_t min_lim = DSHOT_THROTTLE_MIN;
@@ -253,11 +252,10 @@ namespace Flywheels {
 		}
 
 
-		PIDController motor_controller = {}; //PID controller
-
 		private:
 
 		bool initialized = false;
+		PIDController motor_controller = {}; //PID controller
 		DShotRMT motor = {}; //ll motor
 		uint32_t last_micros_got = 0;
 		uint16_t motor_raw_trottle = DSHOT_THROTTLE_MIN;
@@ -289,8 +287,9 @@ namespace Flywheels {
 
 	extern uint32_t process_time;
 
-	extern Flywheels::Wheel wheel_l;
-	extern Flywheels::Wheel wheel_r;
+	//used for testing purposes
+	// extern Flywheels::Wheel wheel_l;
+	// extern Flywheels::Wheel wheel_r;
 
 };
 

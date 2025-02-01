@@ -1,0 +1,1 @@
+This folder contains other files that were used to develop and test the program, but are not part of the actual build process.

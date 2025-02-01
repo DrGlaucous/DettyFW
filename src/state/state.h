@@ -16,7 +16,7 @@ class State {
 
     public:
 
-    //flywheel control variables
+    //flywheel control variables (unused)
     volatile uint32_t flywheel_target_rpm;
     bool flywheel_rpm_active; //true if we want to spin up, false if we're spinning down
     //telem values

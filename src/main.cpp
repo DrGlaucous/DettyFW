@@ -347,74 +347,183 @@ void loop()
 //final tests
 
 #include <Arduino.h>
-#include <DShotRMT.h>
 
 #include "filesystem/filesystem.h"
 #include "settings/settings.h"
 #include "state/state.h"
 #include "flywheels/flywheels.h"
+#include "display/display.h"
 
-//Flywheels::Wheel whl = {};
+constexpr uint8_t solenoid_pin = 32;
 
-State state = State();
+State* state = NULL;
+Display* menu = NULL;
+TaskHandle_t displayTaskHandle = NULL;
+
+QueueHandle_t queue_handle = NULL;
+
+//priority-0 task, no need for yeild; other tasks will just step on this
+void display_loop(void *pvParameters) {
+
+    //setup
+    menu = new Display(state->settings);
+
+    DisplayData last_data = DisplayData();
+    DisplayData this_data = DisplayData();
+
+    for(;;) {
+
+        bool data_has_changed = false;
+        auto result = xQueueReceive(queue_handle, &this_data, 0);
+        if (result == pdTRUE) {
+            data_has_changed = !!memcmp(&this_data, &last_data, sizeof(DisplayData));
+        }
+
+        //do a screen redraw only if the data presented has changed
+        if(data_has_changed) {
+            memcpy(&last_data, &this_data, sizeof(DisplayData));
+            menu->tick(last_data);
+        }
+
+    }
+
+}
+
+
+//used to ship data to the screen
+DisplayData disp_d = DisplayData();
+
+//used to decelerate the flywheels when not used
+int32_t flywheel_tgt_rpm = 0;
+
+//used to hold the flywheels on and idle when the trigger is released
+uint32_t last_active_millis = 0;
+uint32_t last_lowrev_millis = 0;
 
 void setup() {
 
     Serial.begin(115200);
     Serial.printf("bet\n");
 
-    state.load_settings();
+    state = new State();
 
-    Controller::init(state.settings);
+    Controller::init(state->settings);
     
-    Flywheels::init(state.settings);
+    Flywheels::init(state->settings);
     Flywheels::set_throttle_override(0); //clamped to DSHOT_RPM_MIN
 
+    //todo: make a class for the solenoid
+    pinMode(solenoid_pin, OUTPUT);
 
-    delay(1000);
+    //create display task + queue to pass in data from the other task
+    queue_handle = xQueueCreate(1, sizeof(DisplayData));
+    xTaskCreateUniversal(display_loop, "displayTask", getArduinoLoopTaskStackSize(), NULL, 0, &displayTaskHandle, ARDUINO_RUNNING_CORE);
 
 }
 
-float throttle_override = (float)0.0;
-bool adjust_mode = false;
 void loop() {
 
-    Controller::tick(state.settings);
+    state->tick(micros()); //todo: this probably isn't needed
 
-    //click-on-off between adjusting throttle and not
-    if(Controller::get_trigger() && Controller::get_trigger_changed()) {
-        adjust_mode = !adjust_mode;
-    }
 
-    if(adjust_mode) {
-        // if(Controller::get_preset_a()) {
-        //     throttle_override += 0.5;
-        // } else {
-        //     throttle_override -= 0.5;
+    Controller::tick(state->settings);
+
+    auto& preset = *state->settings.get_current_preset_mut();
+    
+    //dirty update HUD info
+    {
+        bool delta = false;
+        //change target RPM and update display
+        if(Controller::get_preset_a_changed() && Controller::get_preset_a()) {
+            disp_d.multiplier = (disp_d.multiplier * 10) % 10000;
+            if(disp_d.multiplier == 0) {
+                disp_d.multiplier = 1;
+            }
+
+            delta = true;
+        }
+        if(Controller::get_preset_b_changed() && Controller::get_preset_b()) {
+            preset.flywheel_rpm += disp_d.multiplier;
+            delta = true;
+        }
+        if(Controller::get_preset_c_changed() && Controller::get_preset_c()) {
+            preset.flywheel_rpm -= disp_d.multiplier;
+            delta = true;
+        }
+
+        disp_d.target_speed = preset.flywheel_rpm;
+        disp_d.wheel_speed_l = Flywheels::get_wheel_l_rpm();
+        disp_d.wheel_speed_r = Flywheels::get_wheel_r_rpm();
+
+        xQueueOverwrite(queue_handle, &disp_d);
+
+
+        // if(delta) {
+        //     xQueueOverwrite(queue_handle, &disp_d);
         // }
-        throttle_override = 20000.0;
-    } else {
-        throttle_override -= 100.0;
+    
+
     }
 
+    
+    //dirty temp. connectome:
+    {
 
-    // if(throttle_override > (float)DSHOT_THROTTLE_MAX) {
-    //     throttle_override = (float)DSHOT_THROTTLE_MAX;
-    // } 
-    if (throttle_override < (float)0.0) {
-        throttle_override = (float)0.0;
+        //rev flywheels if trigger held
+        if(Controller::get_trigger()) {
+            flywheel_tgt_rpm = preset.flywheel_rpm;
+            last_active_millis = millis();
+
+            //throw solenoid (semi-auto only currently)
+            if(Flywheels::get_wheel_l_rpm() > flywheel_tgt_rpm - 100
+            && Flywheels::get_wheel_r_rpm() > flywheel_tgt_rpm - 100) {
+                digitalWrite(solenoid_pin, 1);
+            }
+
+        } else {
+            digitalWrite(solenoid_pin, 0);
+
+            if(millis() - last_active_millis > 700) {
+                //stay reved for 2 seconds
+
+                if(flywheel_tgt_rpm > 550) {
+                    //decelerate until we reach idle RPM
+                    flywheel_tgt_rpm -= 10;
+                    last_lowrev_millis = millis();
+                } else {
+                    //hold at IDLE for x1000 seconds, otherwise turn off
+                    if(millis() - last_active_millis > 8000) {
+                        flywheel_tgt_rpm = 0;
+                    }
+                }
+            }
+
+        }
+        
+
     }
     
-    if(throttle_override < 1.0) {
+
+    
+    //switch between PID and direct control based on RPM (since PID control at 0 tends to make the wheels spin randomly)
+    if(flywheel_tgt_rpm < 1) {
         Flywheels::set_throttle_override(DSHOT_THROTTLE_MIN);
     } else {
-        Flywheels::set_target_rpm((uint32_t)throttle_override);
+        Flywheels::set_target_rpm(flywheel_tgt_rpm);
     }
 
-
+    
     //push back our latest throttle changes to the driver
     Flywheels::update_pid();
 
+    //sleep thread for display as-needed
+    delay(1);
+
+
+
+
+
+    //don't look down here!! It ain't pretty.
 
 
     //Serial.printf("%d || %d\n", Controller::get_trigger(), Controller::get_preset_a());
@@ -429,16 +538,16 @@ void loop() {
     //once we meet or surpass the goal, switch to +-1000 from prev. value
 
     //testing debug stuff
-    delay(1);
-    Serial.printf("%d || %d || %f || %f || %f || %f || %f\n",
-        Flywheels::get_wheel_l_rpm(),
-        Flywheels::get_wheel_r_rpm(),
-        throttle_override,
-        Flywheels::wheel_l.motor_controller.ival,
-        Flywheels::wheel_r.motor_controller.ival,
-        Flywheels::wheel_l.motor_controller.last_pval,
-        Flywheels::wheel_r.motor_controller.last_pval
-    );
+    // delay(1);
+    // Serial.printf("%d || %d || %f || %f || %f || %f || %f\n",
+    //     Flywheels::get_wheel_l_rpm(),
+    //     Flywheels::get_wheel_r_rpm(),
+    //     throttle_override,
+    //     Flywheels::wheel_l.motor_controller.ival,
+    //     Flywheels::wheel_r.motor_controller.ival,
+    //     Flywheels::wheel_l.motor_controller.last_pval,
+    //     Flywheels::wheel_r.motor_controller.last_pval
+    // );
 
 
 }

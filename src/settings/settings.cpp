@@ -60,7 +60,7 @@ Settings::Settings(const char* directory) {
 
         curr_preset_index = 0;
         auto presets = PresetSettings();
-        presets.flywheel_rpm = 400;
+        presets.flywheel_rpm = 20000;
         preset_list.push_back(std::move(presets));
 
     }

@@ -114,7 +114,7 @@ namespace Flywheels {
             DSHOT_THROTTLE_MAX, //min output lim
             DSHOT_THROTTLE_MIN, //max output lim
             0.0012, //p
-            0.00020, //i
+            0.00015, //i
             0.001 //d
         );
         uint32_t l_last_micros_got = 0;
@@ -124,7 +124,7 @@ namespace Flywheels {
             DSHOT_THROTTLE_MAX, //min output lim
             DSHOT_THROTTLE_MIN, //max output lim
             0.0012, //p
-            0.00020, //i
+            0.00015, //i
             0.001 //d
         );
         uint32_t r_last_micros_got = 0;

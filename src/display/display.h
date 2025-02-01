@@ -27,7 +27,7 @@ typedef struct DisplayData {
     uint32_t target_speed = 0;
     uint32_t wheel_speed_l = 0;
     uint32_t wheel_speed_r = 0;
-    uint32_t multiplier;
+    uint32_t multiplier = 1;
 } DisplayData;
 
 
