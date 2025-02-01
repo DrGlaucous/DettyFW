@@ -1,8 +1,14 @@
 #include <DShotRMT.h>
 #include <hal/gpio_hal.h>
 
-//#include <Arduino.h>
 
+/// by default, some of these functions are loaded into IRAM so we can send data out from an ISR
+/// if for some reason, you don't want this to happen, define `DSHOT_CONFIG_DONT_USE_IRAM_TX`
+#ifdef DSHOT_CONFIG_DONT_USE_IRAM_TX
+#define FAST_ATTR_FLAG
+#else
+#define FAST_ATTR_FLAG IRAM_ATTR
+#endif
 
 //callbacks need to be in C and not part of any class
 extern "C"
@@ -11,14 +17,14 @@ extern "C"
 //ensures that the rx callback code is always in iram, which is essential for speed
 #define CONFIG_RMT_ISR_IRAM_SAFE 1
 #if CONFIG_RMT_ISR_IRAM_SAFE
-#define TEST_RMT_CALLBACK_ATTR IRAM_ATTR
+#define RMT_CALLBACK_ATTR IRAM_ATTR
 #else
-#define TEST_RMT_CALLBACK_ATTR
+#define RMT_CALLBACK_ATTR
 #endif
 
 //callback when we get data back in
 //flag the selected code to be always loaded into RAM
-TEST_RMT_CALLBACK_ATTR
+RMT_CALLBACK_ATTR
 static bool rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *user_data)
 {
 	//init return value
@@ -60,7 +66,7 @@ static bool rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_eve
     return high_task_wakeup == pdTRUE; //return xQueueSendFromISR result (does it wake up a higher task?)
 }
 
-TEST_RMT_CALLBACK_ATTR
+RMT_CALLBACK_ATTR
 static bool tx_done_callback(rmt_channel_handle_t tx_chan, const rmt_tx_done_event_data_t *edata, void *user_ctx)
 {
 	BaseType_t high_task_wakeup = pdFALSE;
@@ -115,34 +121,35 @@ static const unsigned char GCR_decode[32] =
 };
 
 
-/// Populate the config struct with relavent data
-DShotRMT::DShotRMT(uint8_t pin)
-{
-	dshot_config.gpio_num = (gpio_num_t)pin;
-}
+/// Construct object, but don't populate anything yet
+DShotRMT::DShotRMT() {}
 
 /// Clear constructed variables
 DShotRMT::~DShotRMT()
 {
 	//TODO: more RMT stuff needs to be cleaned out
+	if(started) {
+		if(dshot_config.bidirectional)
+		{
 
-	if(dshot_config.bidirectional)
-	{
+			rmt_del_channel(dshot_config.rx_chan);
+			vQueueDelete(receive_queue);
+		}
 
-		rmt_del_channel(dshot_config.rx_chan);
-		vQueueDelete(receive_queue);
+		rmt_del_channel(dshot_config.tx_chan); //de-allocate channel
+		rmt_del_encoder(dshot_config.copy_encoder); //de-allocate encoder
 	}
 
-	rmt_del_channel(dshot_config.tx_chan); //de-allocate channel
-	rmt_del_encoder(dshot_config.copy_encoder); //de-allocate encoder
 }
 
 
 
 /// Apply the settings to the RMT backend
-void DShotRMT::begin(dshot_mode_t dshot_mode, bidirectional_mode_t is_bidirectional, uint16_t magnet_count)
+void DShotRMT::begin(uint8_t pin, dshot_mode_t dshot_mode, bidirectional_mode_t is_bidirectional, uint16_t magnet_count)
 {
 
+	dshot_config.gpio_num = (gpio_num_t)pin;
+	
 	//populate bidirection
 	if(dshot_mode == DSHOT150) //dshot 150 does not support bidirection
 		dshot_config.bidirectional = NO_BIDIRECTION;
@@ -317,6 +324,8 @@ void DShotRMT::begin(dshot_mode_t dshot_mode, bidirectional_mode_t is_bidirectio
 	rmt_copy_encoder_config_t copy_encoder_config = {}; //nothing to configure
 	handle_error(rmt_new_copy_encoder(&copy_encoder_config, &dshot_config.copy_encoder));
 
+	started = true;
+
 }
 
 /// Encode and send a throttle value
@@ -396,7 +405,7 @@ void DShotRMT::prepare_dshot_value(uint16_t throttle_value, telemetric_request_t
 }
 
 /// Send the previous value either sent with send_dshot_value or prepared with prepare_dshot_value
-dshot_send_packet_exit_mode_t DShotRMT::send_last_value() {
+FAST_ATTR_FLAG dshot_send_packet_exit_mode_t DShotRMT::send_last_value() {
 	
 	//disable open drain mode before sending this out
 	gpio_ll_od_disable(GPIO_LL_GET_HW(GPIO_PORT_0), dshot_config.gpio_num);
@@ -430,7 +439,7 @@ dshot_send_packet_exit_mode_t DShotRMT::send_last_value() {
 
 /// convert the dshot frame (WITHOUT checksum) into some form of erpm (not sure what units yet...)
 /// stolen from betaflight (`src/main/drivers/dshot.c`)
-uint32_t DShotRMT::decode_eRPM_telemetry_value(uint16_t value)
+FAST_ATTR_FLAG uint32_t DShotRMT::decode_eRPM_telemetry_value(uint16_t value)
 {
     // eRPM range
     if (value == 0x0fff) {
@@ -450,14 +459,14 @@ uint32_t DShotRMT::decode_eRPM_telemetry_value(uint16_t value)
 
 /// Stolen from betaflight (`src/main/drivers/dshot.c`)
 /// Used with serial esc telem as well as dshot telem
-uint32_t DShotRMT::erpmToRpm(uint16_t erpm, uint16_t motorPoleCount)
+FAST_ATTR_FLAG uint32_t DShotRMT::erpmToRpm(uint16_t erpm, uint16_t motorPoleCount)
 {
     //  rpm = (erpm * 100) / (motorConfig()->motorPoleCount / 2)
     return (erpm * 200) / motorPoleCount;
 }
 
 /// read back the value in the buffer
-dshot_get_packet_exit_mode_t DShotRMT::get_dshot_packet(uint32_t* value, extended_telem_type_t* packetType)
+FAST_ATTR_FLAG dshot_get_packet_exit_mode_t DShotRMT::get_dshot_packet(uint32_t* value, extended_telem_type_t* packetType)
 {
 
 	if(dshot_config.bidirectional != ENABLE_BIDIRECTION)
@@ -468,8 +477,13 @@ dshot_get_packet_exit_mode_t DShotRMT::get_dshot_packet(uint32_t* value, extende
 	//only process new data if we have new data waiting in the queue
 	rx_frame_data_t rx_data;
 
-	if(xQueueReceive(receive_queue, &rx_data, 0))
-	{
+	if(
+#ifdef CONFIG_DONT_USE_IRAM
+		xQueueReceive(receive_queue, &rx_data, 0)
+#else
+		xQueueReceiveFromISR(receive_queue, &rx_data, NULL)
+#endif
+	) {
 
 		//only execute if we got a packet (no packet response gives us only one symbol by default)
 		if (rx_data.num_symbols > 1)
@@ -716,7 +730,7 @@ uint16_t DShotRMT::calc_dshot_chksum(const dshot_esc_frame_t &dshot_frame)
 
 
 /// Handle any esp32 errors
-void DShotRMT::handle_error(esp_err_t err_code) {
+FAST_ATTR_FLAG void DShotRMT::handle_error(esp_err_t err_code) {
 	if (err_code != ESP_OK) {
 		Serial.print("error: ");
 		Serial.println(esp_err_to_name(err_code));

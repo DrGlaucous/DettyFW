@@ -11,14 +11,14 @@ extern "C"
 //ensures that the rx callback code is always in iram, which is essential for speed
 #define CONFIG_RMT_ISR_IRAM_SAFE 1
 #if CONFIG_RMT_ISR_IRAM_SAFE
-#define TEST_RMT_CALLBACK_ATTR IRAM_ATTR
+#define RMT_CALLBACK_ATTR IRAM_ATTR
 #else
-#define TEST_RMT_CALLBACK_ATTR
+#define RMT_CALLBACK_ATTR
 #endif
 
 //callback when we get data back in
 //flag the selected code to be always loaded into RAM
-TEST_RMT_CALLBACK_ATTR
+RMT_CALLBACK_ATTR
 static bool rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *user_data)
 {
 	//init return value
@@ -60,7 +60,7 @@ static bool rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_eve
     return high_task_wakeup == pdTRUE; //return xQueueSendFromISR result (does it wake up a higher task?)
 }
 
-TEST_RMT_CALLBACK_ATTR
+RMT_CALLBACK_ATTR
 static bool tx_done_callback(rmt_channel_handle_t tx_chan, const rmt_tx_done_event_data_t *edata, void *user_ctx)
 {
 	BaseType_t high_task_wakeup = pdFALSE;

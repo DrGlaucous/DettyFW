@@ -247,16 +247,16 @@ class DShotRMT
     
     public:
     //constructors and destructors
-	DShotRMT(uint8_t pin);
+	DShotRMT();
 	~DShotRMT();
 
 
     //interface commands (with safe defaults)
-	void begin(dshot_mode_t dshot_mode = DSHOT_OFF, bidirectional_mode_t is_bidirectional = NO_BIDIRECTION, uint16_t magnet_count = 14);
+	void begin(uint8_t pin, dshot_mode_t dshot_mode = DSHOT_OFF, bidirectional_mode_t is_bidirectional = NO_BIDIRECTION, uint16_t magnet_count = 14);
 	dshot_send_packet_exit_mode_t send_dshot_value(uint16_t throttle_value, telemetric_request_t telemetric_request = NO_TELEMETRIC);
     
     void prepare_dshot_value(uint16_t throttle_value, telemetric_request_t telemetric_request = NO_TELEMETRIC);
-    dshot_send_packet_exit_mode_t DShotRMT::send_last_value();
+    dshot_send_packet_exit_mode_t send_last_value();
 
 
 
@@ -287,11 +287,14 @@ class DShotRMT
     rmt_symbol_word_t dshot_tx_rmt_item[DSHOT_PACKET_LENGTH] = {};
 
     //all the settings for setting up the ESC channels 
-    dshot_config_t dshot_config;
+    dshot_config_t dshot_config = {};
 
     //used to determine telemetry success rate when reading values sent from the ESC
     uint32_t successful_packets = 0;
     uint32_t error_packets = 0;
+
+    //used in the destructor to determine what to destruct when finished
+    bool started = false;
 
     //rmt_item32_t* encode_dshot_to_rmt(uint16_t parsed_packet); //rmt_symbol_word_t
     void encode_dshot_to_rmt(uint16_t parsed_packet);

@@ -9,6 +9,8 @@
 
 namespace Flywheels {
 
+
+
     //not touched by the ISR
     bool initialized = false;
     bool dummy_mode = true;
@@ -18,52 +20,57 @@ namespace Flywheels {
     uint32_t motor_tx_delay_micros = 0;
     uint32_t target_rpm = 0;
     bool rpm_override = false;
-    uint32_t override_throttle = 0;
+    uint32_t override_throttle = DSHOT_THROTTLE_MIN;
 
+    uint32_t last_pid_update_time = 0;
 
     //set from inside the ISR, must be treated as readonly outside
     Wheel wheel_r = {};
     Wheel wheel_l = {};
 
-    bool pid_needed = false;
+    //test, see how long it takes to process "update_pid"
     uint32_t process_time = 0;
 
-    void IRAM_ATTR tick_from_isr() {
-        pid_needed = true;
+    /// tell wheels to send out a dshot packet
+    IRAM_ATTR void tick_from_isr() {
+        wheel_r.send_dshot_packet();
+        wheel_l.send_dshot_packet();
     }
 
     void update_pid() {
 
         //max time of execution here seems to be around 71 microseconds
+        //too heavy to be called from ISR (or is it just because we use floats in the PID?)
 
-        if(pid_needed) {
-            uint32_t start = micros();
 
-            wheel_r.tick_pid(
-                motor_tx_delay_micros,
-                target_rpm,
-                rpm_override,
-                override_throttle
-            );
-            wheel_l.tick_pid(
-                motor_tx_delay_micros,
-                target_rpm,
-                rpm_override,
-                override_throttle
-            );
-            
-            //halt dshot output timer while we re-calculate the PID values it should use
-            timerStop(timer);
-            wheel_r.prepare_dshot();
-            wheel_l.prepare_dshot();
-            timerStart(timer);
+        //calculate the time spent outside this function
+        uint32_t delta_time = micros() - last_pid_update_time;
+        last_pid_update_time = delta_time;
 
-            process_time = micros() - start;
-            pid_needed = false;
-        }
+        uint32_t start  = micros();
+        
+        wheel_r.tick_pid(
+            target_rpm,
+            rpm_override,
+            override_throttle
+        );
+        wheel_l.tick_pid(
+            target_rpm,
+            rpm_override,
+            override_throttle
+        );
+        
+        //halt dshot output timer while we re-calculate the PID values it should use
+        timerStop(timer);
+        wheel_r.prepare_dshot_packet();
+        wheel_l.prepare_dshot_packet();
+        timerStart(timer);
+
+
+        //for heat testing
+        process_time = micros() - start;
 
     }
-
 
     void init(const Settings& settings) {
         auto flywheel_settings = settings.get_flywheel_settings_ref();
@@ -107,8 +114,8 @@ namespace Flywheels {
             DSHOT_THROTTLE_MAX, //min output lim
             DSHOT_THROTTLE_MIN, //max output lim
             0.0012, //p
-            0.000, //i
-            0.006 //d
+            0.00020, //i
+            0.001 //d
         );
         uint32_t l_last_micros_got = 0;
 
@@ -117,14 +124,14 @@ namespace Flywheels {
             DSHOT_THROTTLE_MAX, //min output lim
             DSHOT_THROTTLE_MIN, //max output lim
             0.0012, //p
-            0.000, //i
-            0.006 //d
+            0.00020, //i
+            0.001 //d
         );
         uint32_t r_last_micros_got = 0;
 
         //set these to start wide open as soon as the PID starts up (function limits to max output limit)
-        motor_l_controller.set_output_offset(9999);
-        motor_r_controller.set_output_offset(9999);
+        motor_l_controller.set_output_offset(0);
+        motor_r_controller.set_output_offset(0);
 
         wheel_r.init(
             motor_r_controller,
@@ -178,6 +185,13 @@ namespace Flywheels {
             throttle = DSHOT_THROTTLE_MIN;
         }
         override_throttle = throttle;
+    }
+
+    uint32_t get_wheel_l_rpm() {
+        return wheel_l.get_rpm();
+    }
+    uint32_t get_wheel_r_rpm() {
+        return wheel_r.get_rpm();
     }
 
 }

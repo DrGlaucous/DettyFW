@@ -39,7 +39,7 @@ namespace Flywheels {
 		~PIDController() {
 		};
 
-		//runs the pid loop for one cycle
+		//runs the pid loop for one cycle (uses floats, non-ISR-safe)
 		int32_t tick(uint32_t target_rpm, uint32_t curr_rpm, uint32_t delta_micros) {
 
 			//small RPM = big throttle value, direct acting
@@ -51,11 +51,13 @@ namespace Flywheels {
 			float pval = (float)target_rpm - (float)curr_rpm;
 
 			//if our value is increasing/decreasing and we limited the output, don't continue integration
+			//or if our current value is 0 (rely only on P control for startup)
 			if(
 				!(
 				(pval > 0.0 && has_limited_high) ||
 				(pval < 0.0 && has_limited_low)
 				)
+				&& curr_rpm != 0
 			) {
 				ival += pval * i_const * (float)delta_micros;
 			}
@@ -123,6 +125,12 @@ namespace Flywheels {
 			return 0;
 		}
 
+
+		//data retainers
+		float last_pval = 0;
+		float ival = 0;
+
+
 		private:
 
 		//vars
@@ -135,9 +143,6 @@ namespace Flywheels {
 
 		int32_t start_output_offset = 0;
 
-		//data retainers
-		float last_pval = 0;
-		float ival = 0;
 
 		bool has_limited_high = false;
 		bool has_limited_low = false;
@@ -148,13 +153,13 @@ namespace Flywheels {
 
 		public:
 
+		/// constructors empty for the time being: we pre-allocate everything on initialization
 		Wheel() {}
 
 		~Wheel() {
-			delete(motor);
 		}
 
-		//creates dshot driver, starts pid, etc.
+		/// creates dshot driver, starts pid, etc.
 		void init(
 			PIDController& controller,
 			uint8_t pin,
@@ -168,23 +173,25 @@ namespace Flywheels {
 			}
 
 			//set up motor driver
-			motor = new DShotRMT(pin);
 			motor_controller = controller;
 
 			//todo: motorPoleCount==0 needs to be caught in the dshotRMT function itself, not here
-			motor->begin(
+			motor.begin(
+				pin,
 				mode,
 				bd_mode,
 				pole_count == 0 ? 1 : pole_count
 			);
 
+			//pre-make a dshot value to store in case send_dshot_packet is called before prepare_dshot_packet
+			motor.prepare_dshot_value(motor_raw_trottle);
+
 			initialized = true;
 
 		}
 
-		//updates PID from moving average
+		/// updates PID given stored average and new RPM goal
 		void tick_pid(
-			uint32_t abs_micros,
 			uint32_t flywheel_target_rpm,
 			bool flywheel_rpm_override,
 			uint32_t flywheel_override_throttle
@@ -195,63 +202,72 @@ namespace Flywheels {
 				return;
 			}
 
+			//calculate new RPM from rolling average since last tick
+			if(got_count > 0) {
+				flywheel_current_rpm = av_rpm_total / got_count;
+			}
 
 			if(flywheel_rpm_override) {
 				//run motor directly from this output
 				motor_raw_trottle = flywheel_override_throttle;
 				motor_controller.reset();
-			}
-			{
-				//update PID if response is good
-
-				//TEST: run PID to see full execution time
-				if(true) { //(response == DECODE_SUCCESS) {
-					int unused = motor_controller.tick(flywheel_target_rpm, flywheel_current_rpm, abs_micros - last_micros_got);
-					last_micros_got = abs_micros;
-				}
+			} else {
+				//update PID
+				motor_raw_trottle = motor_controller.tick(flywheel_target_rpm, flywheel_current_rpm, 200);
+				//last_micros_got = abs_micros;
 			}
 
 		}
 		
 		//prepare the next throttle value to be transmitted from ISR (separate because we need to pause the ISR for this. it needs to be quick-as-possible)
-		void prepare_dshot() {
-			motor->prepare_dshot_value(motor_raw_trottle);
+		void prepare_dshot_packet() {
+			motor.prepare_dshot_value(motor_raw_trottle);
 			//reset rolling average
 			got_count = 0;
 			av_rpm_total = 0;
 		}
 
-		//send (and get) dshot values from ISR
+		///send (and get) dshot values, should be ISR friendly
 		void IRAM_ATTR send_dshot_packet() {
 			uint32_t rpm = 0;
-			dshot_get_packet_exit_mode_t response = motor->get_dshot_packet(&rpm);
+			dshot_get_packet_exit_mode_t response = motor.get_dshot_packet(&rpm);
 
 			if(response == DECODE_SUCCESS) {
 				got_count++;
 				av_rpm_total += rpm;
 			}
 
-			motor->send_last_value();
+			//test
+			//uint32_t aa = motor_controller.tick(fltr, flywheel_current_rpm, 200);
+
+			motor.send_last_value();
 		}
 
+		/// get current RPM (refreshed with tick_pid)
 		inline uint32_t get_rpm() const{
 			return flywheel_current_rpm;
 		}
+		/// get current raw target throttle (refreshed with tick_pid)
 		inline uint16_t get_throttle() const{
 			return motor_raw_trottle;
 		}
 
+
+		PIDController motor_controller = {}; //PID controller
+
 		private:
 
 		bool initialized = false;
-		PIDController motor_controller = {};
-		DShotRMT* motor = nullptr;
+		DShotRMT motor = {}; //ll motor
 		uint32_t last_micros_got = 0;
-		uint16_t motor_raw_trottle = 0;
+		uint16_t motor_raw_trottle = DSHOT_THROTTLE_MIN;
 		uint32_t flywheel_current_rpm = 0;
 
-		uint32_t got_count = 0; //used for calculating the average RPM since the controller was last ticked
-		uint32_t av_rpm_total = 0; //average RPM between motor ticks, flywheel_current_rpm is updated with the motor tick
+		volatile uint32_t got_count = 0; //used for calculating the average RPM since the controller was last ticked
+		volatile uint32_t av_rpm_total = 0; //average RPM between motor ticks, flywheel_current_rpm is updated with the motor tick
+
+		//last single RPM from the motor, used to see if what we got is an outlier (note: threshhold here may need to change depending on how fast the motor ramps up)
+		volatile uint32_t last_rpm = 0;
 
 	};
 
@@ -260,9 +276,11 @@ namespace Flywheels {
 	void set_target_rpm(uint32_t rpm);
 	void set_throttle_override(uint32_t throttle);
 	void deinit();
+	void update_pid();
 
-	void tick_from_isr();
-
+	uint32_t get_wheel_l_rpm();
+	uint32_t get_wheel_r_rpm();
+	
 	// static Wheel wheel_r;
 	// static Wheel wheel_l;
 	// static bool dummy_mode;
@@ -270,6 +288,9 @@ namespace Flywheels {
 	// uint32_t motor_tx_delay_micros = 8;
 
 	extern uint32_t process_time;
+
+	extern Flywheels::Wheel wheel_l;
+	extern Flywheels::Wheel wheel_r;
 
 };
 
